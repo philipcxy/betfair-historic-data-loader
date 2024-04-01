@@ -8,12 +8,12 @@ def get_spark_session() -> SparkSession:
 
 @staticmethod
 def set_namespace(spark: SparkSession, namespace: str):
-    # Need to create one level at a time
+    # Limited to one level at a time so we need to traverse
     namespace_parts = namespace.split(".")
     for i in range(1, len(namespace_parts) + 1):
         namespace_level = ".".join(namespace_parts[:i])
-        print(f"CREATE NAMESPACE IF NOT EXISTS {namespace_level}")
-        print(f"USE {namespace_level}")
+        spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {namespace_level}")
+        spark.sql(f"USE {namespace_level}")
 
 
 @staticmethod

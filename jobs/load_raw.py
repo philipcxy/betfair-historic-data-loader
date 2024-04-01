@@ -1,15 +1,23 @@
 import argparse
+import tarfile
+from io import BytesIO
+
+from dotenv import load_dotenv
 from pyspark.sql import types as T
 from pyspark.sql import functions as F
 
+from shared.adls_wrapper import AdlsWrapper
 from shared.common import setup_spark_environment
+from shared.key_vault_wrapper import KeyVaultWrapper
 
 
 def run(namespace: str, branch: str):
+    extract_files()
+
     spark = setup_spark_environment(namespace, branch)
 
     df = spark.read.json(
-        "/landing/ADVANCED/2020/*/*/*/1.*",
+        "/landing/ADVANCED/*",
         recursiveFileLookup=True,
         schema=load_schema(),
     )
@@ -20,6 +28,29 @@ def run(namespace: str, branch: str):
     )
 
     df.write.format("iceberg").mode("overwrite").save("raw")
+
+
+def extract_files():
+    kv_wrapper = KeyVaultWrapper()
+    adls_wrapper = AdlsWrapper(kv_wrapper)
+
+    source_folder = "landing"
+    destination_folder = "processed"
+
+    tar_files: list[str] = adls_wrapper.list_tar_files(source_folder)
+    for tar_file in tar_files:
+        file_bytes = BytesIO(adls_wrapper.get_file_content(tar_file))
+
+        with tarfile.open(fileobj=file_bytes) as tar:
+            for member in tar.getmembers():
+                content: tarfile.TarInfo = tar.extractfile(member)
+                adls_wrapper.upload_bytes(f"{source_folder}/{member.name}", content)
+
+        file_parts = tar_file.split("/")
+        file_parts.insert(-1, destination_folder)
+        destination = "/".join(file_parts)
+
+        adls_wrapper.move_file(tar_file, destination)
 
 
 def load_schema() -> T.StructType:
@@ -210,6 +241,8 @@ def load_schema() -> T.StructType:
 
 
 if __name__ == "__main__":
+    load_dotenv()
+
     parser = argparse.ArgumentParser(description="Run a PySpark job")
     parser.add_argument(
         "--namespace",
