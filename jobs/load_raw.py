@@ -12,30 +12,16 @@ from shared.key_vault_wrapper import KeyVaultWrapper
 
 
 def run(namespace: str, branch: str):
-    extract_files()
-
-    spark = setup_spark_environment(namespace, branch)
-
-    df = spark.read.json(
-        "/landing/ADVANCED/*",
-        recursiveFileLookup=True,
-        schema=load_schema(),
-    )
-    df = df.select(
-        F.col("pt"),
-        F.to_timestamp(F.col("pt") / 1000).alias("timestamp"),
-        F.explode(F.col("mc")).alias("mc"),
-    )
-
-    df.write.format("iceberg").mode("overwrite").save("raw")
-
-
-def extract_files():
-    kv_wrapper = KeyVaultWrapper()
-    adls_wrapper = AdlsWrapper(kv_wrapper)
-
     source_folder = "landing"
     destination_folder = "processed"
+
+    extract_files(source_folder, destination_folder)
+    load_data_to_table(namespace, branch, source_folder)
+
+
+def extract_files(source_folder: str, destination_folder: str):
+    kv_wrapper = KeyVaultWrapper()
+    adls_wrapper = AdlsWrapper(kv_wrapper)
 
     tar_files: list[str] = adls_wrapper.list_tar_files(source_folder)
     for tar_file in tar_files:
@@ -51,6 +37,23 @@ def extract_files():
         destination = "/".join(file_parts)
 
         adls_wrapper.move_file(tar_file, destination)
+
+
+def load_data_to_table(namespace: str, branch: str, location: str):
+    spark = setup_spark_environment(namespace, branch)
+
+    df = spark.read.json(
+        f"/{location}/ADVANCED/*",
+        recursiveFileLookup=True,
+        schema=load_schema(),
+    )
+    df = df.select(
+        F.col("pt"),
+        F.to_timestamp(F.col("pt") / 1000).alias("timestamp"),
+        F.explode(F.col("mc")).alias("mc"),
+    )
+
+    df.write.format("iceberg").mode("overwrite").save("raw")
 
 
 def load_schema() -> T.StructType:
