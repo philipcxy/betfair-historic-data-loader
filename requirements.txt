@@ -64,7 +64,7 @@ pyjwt==2.8.0
 pyspark==3.4.2
 pytest==8.1.1
 python-dotenv==1.0.1
-pywin32==306
+pywin32==306; "win" in sys.platform
     # via portalocker
 requests==2.31.0
     # via
