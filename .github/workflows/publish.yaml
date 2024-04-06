@@ -1,39 +1,96 @@
 name: Publish Spark jobs
 on: [push, workflow_dispatch]
 
+env:
+  STORAGE_ACCOUNT_NAME: bettingdls
+  STORAGE_FS_NAME: bettingfs
+
 jobs:
-  deploy:
+  detect_changes:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout 
-        uses: actions/checkout@v3
-      
-      - name: Zip dependencies
-        run: zip -r shared.zip shared/
+    - name: Checkout 
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
+    - uses: dorny/paths-filter@v2
+      name: Detect File Changes
+      id: changes
+      with:
+        filters: |
+          shared:
+            - 'shared/**'
+          libs:
+            - 'requirements.txt'
 
-      - name: 'Install Python dependencies'
-        run: |
-          python -m venv ./.venv
-          source ./.venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install venv-pack
-          venv-pack -o libs.zip
+  publish_code:
+    needs: detect_changes
+    runs-on: ubuntu-latest
+    steps:      
+    - name: Checkout 
+      uses: actions/checkout@v4
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Upload files
-        uses: azure/cli@v2
-        with: 
-          inlineScript: |
-            az storage blob upload-batch -s jobs --pattern *.py --destination-path spark_job_files/jobs -d bettingfs --account-name bettingdls --auth-mode login --overwrite
-            az storage fs file upload -s shared.zip -p spark_job_files/shared.zip -f bettingfs --account-name bettingdls --auth-mode login  --overwrite
-            az storage fs file upload -s libs.zip -p spark_job_files/libs.zip -f bettingfs --account-name bettingdls --auth-mode login  --overwrite
+    - name: Upload code
+      uses: azure/cli@v2
+      with: 
+        inlineScript: |
+          az storage blob upload-batch -s jobs --pattern *.py --destination-path spark_job_files/jobs -d ${{ env.STORAGE_FS_NAME }} --account-name  ${{ env.STORAGE_ACCOUNT_NAME }} --auth-mode login --overwrite
+
+  publish_dependencies:
+    needs: detect_changes
+    if: ${{ needs.detect_changes.outputs.shared == 'true' }}
+    runs-on: ubuntu-latest
+    steps:      
+    - name: Checkout 
+      uses: actions/checkout@v4
+
+    - name: Zip dependencies    
+      run: zip -r shared.zip shared/
+
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Upload dependencies
+      uses: azure/cli@v2
+      with: 
+        inlineScript: |
+          az storage fs file upload -s shared.zip -p spark_job_files/shared.zip -f ${{ env.STORAGE_FS_NAME }} --account-name  ${{ env.STORAGE_ACCOUNT_NAME }} --auth-mode login --overwrite
+
+  publish_libs:
+    needs: detect_changes
+    if: ${{ needs.detect_changes.outputs.libs == 'true' }} 
+    runs-on: ubuntu-latest
+    steps:        
+    - name: Checkout 
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: 'Install Python dependencies'
+      run: |
+        python -m venv ./.venv
+        source ./.venv/bin/activate
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install venv-pack
+        venv-pack -o libs.zip
+
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Upload libs
+      uses: azure/cli@v2
+      with: 
+        inlineScript: |
+          az storage fs file upload -s libs.zip -p spark_job_files/libs.zip -f ${{ env.STORAGE_FS_NAME }} --account-name  ${{ env.STORAGE_ACCOUNT_NAME }} --auth-mode login  --overwrite
