@@ -1,8 +1,7 @@
 import argparse
 
-from dotenv import load_dotenv
-from pyspark.sql import types as T
 from pyspark.sql import functions as F
+from pyspark.sql import types as T
 
 from shared.common import setup_spark_environment
 
@@ -212,8 +211,6 @@ def load_schema() -> T.StructType:
 
 
 if __name__ == "__main__":
-    load_dotenv()
-
     parser = argparse.ArgumentParser(description="Run a PySpark job")
     parser.add_argument(
         "--namespace",
