@@ -8,18 +8,14 @@ def get_spark_session() -> SparkSession:
 
 @staticmethod
 def set_namespace(spark: SparkSession, namespace: str):
-    # Limited to one level at a time so we need to traverse
-    namespace_parts = namespace.split(".")
-    for i in range(1, len(namespace_parts) + 1):
-        namespace_level = ".".join(namespace_parts[:i])
-        spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {namespace_level}")
-        spark.sql(f"USE {namespace_level}")
+    spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {namespace}")
+    spark.sql(f"USE {namespace}")
 
 
 @staticmethod
 def set_branch(spark: SparkSession, branch: str):
     spark.sql(f"CREATE BRANCH IF NOT EXISTS {branch} IN betting")
-    spark.sql(f"USE REFERENCE {branch}")
+    spark.sql(f"USE REFERENCE {branch} IN betting")
 
 
 @staticmethod
@@ -29,6 +25,6 @@ def setup_spark_environment(namespace: str = None, branch: str = None) -> SparkS
     if namespace:
         set_namespace(spark, namespace)
     if branch:
-        set_branch(spark, namespace)
+        set_branch(spark, branch)
 
     return spark

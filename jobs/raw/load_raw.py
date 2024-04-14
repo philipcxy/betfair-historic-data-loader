@@ -1,42 +1,10 @@
 import argparse
-import tarfile
-from io import BytesIO
 
 from dotenv import load_dotenv
 from pyspark.sql import types as T
 from pyspark.sql import functions as F
 
-from shared.adls_wrapper import AdlsWrapper
 from shared.common import setup_spark_environment
-from shared.key_vault_wrapper import KeyVaultWrapper
-
-
-def run(namespace: str, branch: str):
-    source_folder = "landing"
-    destination_folder = "processed"
-
-    extract_files(source_folder, destination_folder)
-    load_data_to_table(namespace, branch, source_folder)
-
-
-def extract_files(source_folder: str, destination_folder: str):
-    kv_wrapper = KeyVaultWrapper()
-    adls_wrapper = AdlsWrapper(kv_wrapper)
-
-    tar_files: list[str] = adls_wrapper.list_tar_files(source_folder)
-    for tar_file in tar_files:
-        file_bytes = BytesIO(adls_wrapper.get_file_content(tar_file))
-
-        with tarfile.open(fileobj=file_bytes) as tar:
-            for member in tar.getmembers():
-                content: tarfile.TarInfo = tar.extractfile(member)
-                adls_wrapper.upload_bytes(f"{source_folder}/{member.name}", content)
-
-        file_parts = tar_file.split("/")
-        file_parts.insert(-1, destination_folder)
-        destination = "/".join(file_parts)
-
-        adls_wrapper.move_file(tar_file, destination)
 
 
 def load_data_to_table(namespace: str, branch: str, location: str):
@@ -53,7 +21,7 @@ def load_data_to_table(namespace: str, branch: str, location: str):
         F.explode(F.col("mc")).alias("mc"),
     )
 
-    df.write.format("iceberg").mode("overwrite").save("raw")
+    df.write.format("iceberg").save("raw")
 
 
 def load_schema() -> T.StructType:
@@ -263,4 +231,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    run(args.namespace, args.branch)
+    source_folder = "landing"
+    load_data_to_table(args.namespace, args.branch, source_folder)
