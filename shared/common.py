@@ -1,4 +1,6 @@
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.dataframe import DataFrame
 
 
 @staticmethod
@@ -28,3 +30,25 @@ def setup_spark_environment(namespace: str = None, branch: str = None) -> SparkS
         set_branch(spark, branch)
 
     return spark
+
+
+@staticmethod
+def get_flattened_df(spark: SparkSession):
+    if not spark.catalog.tableExists("flattened_view"):
+        create_flattened_df(spark)
+
+    return spark.read.table("flattened_view")
+
+
+def create_flattened_df(spark: SparkSession):
+    df: DataFrame = spark.read.table("raw")
+
+    flattened_df: DataFrame = (
+        df.select(F.col("pt"), F.col("timestamp"), F.col("mc.*"))
+        .where(F.col("mc.marketDefinition").isNotNull())
+        .select(
+            F.col("id"), F.col("pt"), F.col("timestamp"), F.col("marketDefinition.*")
+        )
+    )
+
+    flattened_df.createTempView("flattened_view")
