@@ -2,6 +2,7 @@ import argparse
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+from pyspark.sql.window import Window
 
 from shared.common import get_flattened_df, setup_spark_environment
 
@@ -11,16 +12,26 @@ def save(namespace: str, branch: str):
 
     flattened_df = get_flattened_df(spark)
 
-    runner_winner_df = (
+    window = Window.partitionBy(F.col("market_id"), F.col("id"))
+    market_runner_df = (
         flattened_df.select(
             F.col("id").alias("market_id"), F.explode(F.col("runners")).alias("runner")
         )
         .select(F.col("market_id"), F.col("runner.*"))
-        .where(F.col("runner.status") == "WINNER")
-        .select(F.col("market_id"), F.col("id").alias("runner_id"))
+        .withColumn(
+            "winner", F.when(F.col("status") == "WINNER", True).otherwise(False)
+        )
+        .withColumn("winner", F.max(F.col("winner")).over(window))
+        .select(
+            F.col("market_id"),
+            F.col("id").alias("runner_id"),
+            F.col("winner"),
+            F.col("sortPriority").alias("sort_priority"),
+        )
+        .distinct()
     )
 
-    runner_winner_df.write.format("iceberg").save("market_winner")
+    market_runner_df.write.format("iceberg").save("market_runner")
 
 
 if __name__ == "__main__":
