@@ -2,6 +2,7 @@ import argparse
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+from pyspark.sql import types as T
 
 from shared.common import get_flattened_df, setup_spark_environment
 
@@ -11,12 +12,16 @@ def save(namespace: str, branch: str):
 
     flattened_df = get_flattened_df(spark)
 
-    event = flattened_df.select(
-        F.col("eventId").alias("id"),
-        F.col("eventName").alias("name"),
-        F.col("countryCode").alias("country_code"),
-        F.col("regulators").alias("regulators"),
-    ).distinct()
+    event = (
+        flattened_df.withColumn("regulators", F.element_at(0, F.col("regulators")))
+        .select(
+            F.col("eventId").alias("id").cast(T.IntegerType()),
+            F.col("eventName").alias("name"),
+            F.col("countryCode").alias("country_code"),
+            F.col("regulators"),
+        )
+        .distinct()
+    )
 
     event.write.format("iceberg").save("event")
 

@@ -20,9 +20,12 @@ def save(namespace: str, branch: str):
         .join(market_types.alias("mt"), F.col("fl.marketType") == F.col("mt.type"))
         .select(
             F.col("fl.id"),
-            F.col("eventId").alias("event_id"),
+            F.col("eventId").alias("event_id").cast(T.IntegerType()),
             F.col("mt.id").alias("type_id"),
-            F.max("openDate").over(window).alias("scheduled_time"),
+            F.max("openDate")
+            .over(window)
+            .alias("scheduled_time")
+            .cast(T.TimestampType()),
             F.max("marketTime")
             .over(window)
             .alias("start_time")
