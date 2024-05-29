@@ -13,11 +13,22 @@ def save(namespace: str, branch: str):
 
     flattened_df = get_flattened_df(spark)
 
-    window = Window.partitionBy(F.col("fl.id"))
+    window = (
+        Window.partitionBy(F.col("fl.id"))
+        .orderBy(F.col("timestamp"))
+        .rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)
+    )
+
     market_types = spark.read.table("market_type")
     markets = (
         flattened_df.alias("fl")
         .join(market_types.alias("mt"), F.col("fl.marketType") == F.col("mt.type"))
+        .withColumn(
+            "only_inplay",
+            F.when(F.col("inPlay") == F.lit(True), F.col("timestamp")).otherwise(
+                F.lit(None)
+            ),
+        )
         .select(
             F.col("fl.id"),
             F.col("eventId").alias("event_id").cast(T.IntegerType()),
@@ -34,6 +45,9 @@ def save(namespace: str, branch: str):
             .over(window)
             .alias("settled_time")
             .cast(T.TimestampType()),
+            F.first(F.col("only_inplay"), ignorenulls=True)
+            .over(window)
+            .alias("kick_off"),
             F.col("numberOfWinners").alias("num_winners"),
         )
         .distinct()
