@@ -31,7 +31,35 @@ def save(namespace: str, branch: str):
             F.sum(F.col("rc.tv")).over(window).alias("pre_ko_traded_volume"),
         )
         .distinct()
-    ).alias("rc_pko")
+    ).alias("rc_pko_volume")
+
+    odds_window = Window.partitionBy(
+        F.col("rc.market_id"), F.col("rc.runner_id")
+    ).orderBy(F.desc(F.col("rc.pt")))
+    favourite_window = Window.partitionBy(F.col("rc.market_id")).orderBy(F.col("odds"))
+    runner_change_ko_odds_df = (
+        runner_change.join(
+            F.broadcast(market), F.col("m.id") == F.col("rc.market_id"), how="inner"
+        )
+        .filter(
+            (F.col("rc.timestamp") < F.col("kick_off"))
+            & (F.col("rc.type") == "b")
+            & (F.col("rc.position") == 0)
+        )
+        .withColumn("odds_rank", F.row_number().over(odds_window))
+        .filter(F.col("odds_rank") == 1)
+        .withColumn("favourite_rank", F.row_number().over(favourite_window))
+        .withColumn(
+            "favourite", F.when(F.col("favourite_rank") == 1, True).otherwise(False)
+        )
+        .select(
+            F.col("market_id"),
+            F.col("runner_id"),
+            F.col("rc.odds").alias("ko_odds"),
+            F.col("favourite"),
+        )
+        .distinct()
+    ).alias("rc_pko_odds")
 
     runner_change = runner_change.select(
         F.col("market_id"),
@@ -51,55 +79,62 @@ def save(namespace: str, branch: str):
         )
         .join(
             runner_change_pre_ko_df,
-            (F.col("mr.market_id") == F.col("rc_pko.market_id"))
-            & (F.col("mr.runner_id") == F.col("rc_pko.runner_id")),
+            (F.col("mr.market_id") == F.col("rc_pko_volume.market_id"))
+            & (F.col("mr.runner_id") == F.col("rc_pko_volume.runner_id")),
+        )
+        .join(
+            runner_change_ko_odds_df,
+            (F.col("mr.market_id") == F.col("rc_pko_odds.market_id"))
+            & (F.col("mr.runner_id") == F.col("rc_pko_odds.runner_id")),
         )
     )
 
     dim_runner = (
-        (
-            dim_runner.withColumn(
-                "scheduled_date_key",
-                F.year(F.col("m.scheduled_time")) * 10000
-                + F.month(F.col("m.scheduled_time")) * 100
-                + F.dayofmonth(F.col("m.scheduled_time")),
-            )
-            .withColumn(
-                "scheduled_time_key",
-                F.date_format(F.col("m.scheduled_time"), "HHmm").cast(T.IntegerType()),
-            )
-            .withColumn(
-                "kick_off_date_key",
-                F.year(F.col("m.kick_off")) * 10000
-                + F.month(F.col("m.kick_off")) * 100
-                + F.dayofmonth(F.col("m.kick_off")),
-            )
-            .withColumn(
-                "kick_off_time_key",
-                F.date_format(F.col("m.kick_off"), "HHmm").cast(T.IntegerType()),
-            )
-            .select(
-                F.monotonically_increasing_id().alias("id"),
-                F.col("r.id").alias("runner_id"),
-                F.col("r.name"),
-                F.col("m.id").alias("market_id"),
-                F.col("mt.id").alias("market_type_id"),
-                F.col("mt.type").alias("market_name"),
-                F.col("e.id").alias("event_id"),
-                F.col("e.name").alias("event_name"),
-                F.col("scheduled_date_key"),
-                F.col("scheduled_time_key"),
-                F.col("kick_off_date_key"),
-                F.col("kick_off_time_key"),
-                F.col("e.country_code"),
-                F.col("rc_pko.pre_ko_traded_volume"),
-                F.col("total_traded_volume"),
-            )
-            .distinct()
+        dim_runner.withColumn(
+            "scheduled_date_key",
+            F.year(F.col("m.scheduled_time")) * 10000
+            + F.month(F.col("m.scheduled_time")) * 100
+            + F.dayofmonth(F.col("m.scheduled_time")),
         )
-        .write.format("iceberg")
-        .save("dim_runner")
+        .withColumn(
+            "scheduled_time_key",
+            F.date_format(F.col("m.scheduled_time"), "HHmm").cast(T.IntegerType()),
+        )
+        .withColumn(
+            "kick_off_date_key",
+            F.year(F.col("m.kick_off")) * 10000
+            + F.month(F.col("m.kick_off")) * 100
+            + F.dayofmonth(F.col("m.kick_off")),
+        )
+        .withColumn(
+            "kick_off_time_key",
+            F.date_format(F.col("m.kick_off"), "HHmm").cast(T.IntegerType()),
+        )
+        .select(
+            F.monotonically_increasing_id().alias("id"),
+            F.col("r.id").alias("runner_id"),
+            F.col("r.name"),
+            F.col("mr.sort_priority"),
+            F.col("mr.winner"),
+            F.col("m.id").alias("market_id"),
+            F.col("mt.id").alias("market_type_id"),
+            F.col("mt.type").alias("market_name"),
+            F.col("e.id").alias("event_id"),
+            F.col("e.name").alias("event_name"),
+            F.col("scheduled_date_key"),
+            F.col("scheduled_time_key"),
+            F.col("kick_off_date_key"),
+            F.col("kick_off_time_key"),
+            F.col("e.country_code"),
+            F.col("rc_pko_volume.pre_ko_traded_volume"),
+            F.col("rc_pko_odds.ko_odds"),
+            F.col("rc_pko_odds.favourite"),
+            F.col("total_traded_volume"),
+        )
+        .distinct()
     )
+
+    dim_runner.write.format("iceberg").save("dim_runner")
 
 
 if __name__ == "__main__":
