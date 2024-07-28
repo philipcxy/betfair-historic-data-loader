@@ -18,25 +18,27 @@ def save(namespace: str, branch: str):
     market_type = spark.read.table("market_type").alias("mt")
     event = spark.read.table("event").alias("e")
 
-    window = Window.partitionBy(F.col("rc.market_id"), F.col("rc.runner_id"))
+    window = Window.partitionBy(F.col("rc.market_id"), F.col("rc.runner_id")).orderBy(F.col("pt")).rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)
     runner_change_pre_ko_df = (
         runner_change.join(
             F.broadcast(market), F.col("m.id") == F.col("rc.market_id"), how="inner"
         )
+        .withColumn("total_traded_volume", F.last(F.col("rc.tv")).over(window))
         .filter(F.col("rc.timestamp") < F.col("kick_off"))
-        .withColumn("total_traded_volume", F.sum(F.col("rc.tv")).over(window))
-        .select(
+        .groupBy(
             F.col("market_id"),
-            F.col("runner_id"),
-            F.sum(F.col("rc.tv")).over(window).alias("pre_ko_traded_volume"),
+            F.col("runner_id"))
+        .agg(
+            F.last(F.col("rc.tv")).alias("pre_ko_traded_volume"),
+            F.last(F.col("total_traded_volume")).alias("total_traded_volume"),
         )
-        .distinct()
     ).alias("rc_pko_volume")
 
+    favourite_window = Window.partitionBy(F.col("rc.market_id")).orderBy(F.col("ltp"), F.col("odds"))
     odds_window = Window.partitionBy(
         F.col("rc.market_id"), F.col("rc.runner_id")
     ).orderBy(F.desc(F.col("rc.pt")))
-    favourite_window = Window.partitionBy(F.col("rc.market_id")).orderBy(F.col("odds"))
+
     runner_change_ko_odds_df = (
         runner_change.join(
             F.broadcast(market), F.col("m.id") == F.col("rc.market_id"), how="inner"
@@ -44,7 +46,6 @@ def save(namespace: str, branch: str):
         .filter(
             (F.col("rc.timestamp") < F.col("kick_off"))
             & (F.col("rc.type") == "b")
-            & (F.col("rc.position") == 0)
         )
         .withColumn("odds_rank", F.row_number().over(odds_window))
         .filter(F.col("odds_rank") == 1)
@@ -55,28 +56,18 @@ def save(namespace: str, branch: str):
         .select(
             F.col("market_id"),
             F.col("runner_id"),
-            F.col("rc.odds").alias("ko_odds"),
+            F.col("rc.ltp").alias("ko_odds"),
             F.col("favourite"),
         )
         .distinct()
     ).alias("rc_pko_odds")
 
-    runner_change = runner_change.select(
-        F.col("market_id"),
-        F.col("runner_id"),
-        F.sum(F.col("rc.tv")).over(window).alias("total_traded_volume"),
-    ).distinct()
 
     dim_runner = (
         runner.join(market_runner, F.col("r.id") == F.col("mr.runner_id"))
         .join(market, F.col("mr.market_id") == F.col("m.id"))
         .join(market_type, F.col("m.type_id") == F.col("mt.id"))
         .join(event, F.col("m.event_id") == F.col("e.id"))
-        .join(
-            runner_change,
-            (F.col("mr.market_id") == F.col("rc.market_id"))
-            & (F.col("mr.runner_id") == F.col("rc.runner_id")),
-        )
         .join(
             runner_change_pre_ko_df,
             (F.col("mr.market_id") == F.col("rc_pko_volume.market_id"))
