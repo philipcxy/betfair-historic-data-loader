@@ -46,7 +46,7 @@ def save(namespace: str, branch: str):
     )
 
     odds_df = batb_df.union(batl_df).drop(F.col("trd"))
-    odds_df.write.format("iceberg").save("runner_change")
+    odds_df.write.format("iceberg").mode("append").save("runner_change")
 
 
 if __name__ == "__main__":

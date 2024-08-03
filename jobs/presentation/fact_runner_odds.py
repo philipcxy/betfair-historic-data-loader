@@ -84,7 +84,7 @@ def save(namespace: str, branch: str):
         )
     )
 
-    rc_df.write.format("iceberg").save("fact_runner_odds")
+    rc_df.write.format("iceberg").mode("append").save("fact_runner_odds")
 
 
 if __name__ == "__main__":

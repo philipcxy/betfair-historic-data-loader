@@ -18,23 +18,27 @@ def save(namespace: str, branch: str):
     market_type = spark.read.table("market_type").alias("mt")
     event = spark.read.table("event").alias("e")
 
-    window = Window.partitionBy(F.col("rc.market_id"), F.col("rc.runner_id")).orderBy(F.col("pt")).rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)
+    window = (
+        Window.partitionBy(F.col("rc.market_id"), F.col("rc.runner_id"))
+        .orderBy(F.col("pt"))
+        .rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)
+    )
     runner_change_pre_ko_df = (
         runner_change.join(
             F.broadcast(market), F.col("m.id") == F.col("rc.market_id"), how="inner"
         )
         .withColumn("total_traded_volume", F.last(F.col("rc.tv")).over(window))
         .filter(F.col("rc.timestamp") < F.col("kick_off"))
-        .groupBy(
-            F.col("market_id"),
-            F.col("runner_id"))
+        .groupBy(F.col("market_id"), F.col("runner_id"))
         .agg(
             F.last(F.col("rc.tv")).alias("pre_ko_traded_volume"),
             F.last(F.col("total_traded_volume")).alias("total_traded_volume"),
         )
     ).alias("rc_pko_volume")
 
-    favourite_window = Window.partitionBy(F.col("rc.market_id")).orderBy(F.col("ltp"), F.col("odds"))
+    favourite_window = Window.partitionBy(F.col("rc.market_id")).orderBy(
+        F.col("ltp"), F.col("odds")
+    )
     odds_window = Window.partitionBy(
         F.col("rc.market_id"), F.col("rc.runner_id")
     ).orderBy(F.desc(F.col("rc.pt")))
@@ -43,10 +47,7 @@ def save(namespace: str, branch: str):
         runner_change.join(
             F.broadcast(market), F.col("m.id") == F.col("rc.market_id"), how="inner"
         )
-        .filter(
-            (F.col("rc.timestamp") < F.col("kick_off"))
-            & (F.col("rc.type") == "b")
-        )
+        .filter((F.col("rc.timestamp") < F.col("kick_off")) & (F.col("rc.type") == "b"))
         .withColumn("odds_rank", F.row_number().over(odds_window))
         .filter(F.col("odds_rank") == 1)
         .withColumn("favourite_rank", F.row_number().over(favourite_window))
@@ -61,7 +62,6 @@ def save(namespace: str, branch: str):
         )
         .distinct()
     ).alias("rc_pko_odds")
-
 
     dim_runner = (
         runner.join(market_runner, F.col("r.id") == F.col("mr.runner_id"))
@@ -125,7 +125,7 @@ def save(namespace: str, branch: str):
         .distinct()
     )
 
-    dim_runner.write.format("iceberg").save("dim_runner")
+    dim_runner.write.format("iceberg").mode("append").save("dim_runner")
 
 
 if __name__ == "__main__":

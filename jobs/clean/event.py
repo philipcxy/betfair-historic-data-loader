@@ -23,7 +23,7 @@ def save(namespace: str, branch: str):
         .distinct()
     )
 
-    event.write.format("iceberg").save("event")
+    event.write.format("iceberg").mode("append").save("event")
 
 
 if __name__ == "__main__":

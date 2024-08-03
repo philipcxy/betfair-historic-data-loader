@@ -17,7 +17,7 @@ def save(namespace: str, branch: str):
         .select(F.col("id"), F.col("type"))
     )
 
-    market_type.write.format("iceberg").save("market_type")
+    market_type.write.format("iceberg").mode("append").save("market_type")
 
 
 if __name__ == "__main__":

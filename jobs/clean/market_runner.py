@@ -31,7 +31,7 @@ def save(namespace: str, branch: str):
         .distinct()
     )
 
-    market_runner_df.write.format("iceberg").save("market_runner")
+    market_runner_df.write.format("iceberg").mode("append").save("market_runner")
 
 
 if __name__ == "__main__":

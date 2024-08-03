@@ -53,7 +53,7 @@ def save(namespace: str, branch: str):
         .distinct()
     )
 
-    markets.write.format("iceberg").save("market")
+    markets.write.format("iceberg").mode("append").save("market")
 
 
 if __name__ == "__main__":

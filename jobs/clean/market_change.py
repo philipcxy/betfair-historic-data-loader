@@ -31,7 +31,7 @@ def save(namespace: str, branch: str):
         F.col("version"),
     )
 
-    market_change.write.format("iceberg").save("market_change")
+    market_change.write.format("iceberg").mode("append").save("market_change")
 
 
 if __name__ == "__main__":

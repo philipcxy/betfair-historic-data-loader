@@ -17,7 +17,7 @@ def save(namespace: str, branch: str):
         .select(F.col("id"), F.col("name"))
         .distinct()
     )
-    runners.write.format("iceberg").save("runner")
+    runners.write.format("iceberg").mode("append").save("runner")
 
 
 if __name__ == "__main__":

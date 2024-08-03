@@ -37,7 +37,7 @@ def save(namespace: str, branch: str):
         )
     ).alias("event_first_goal")
 
-    event.write.format("iceberg").save("dim_first_goal")
+    event.write.format("iceberg").mode("append")"dim_first_goal")
 
 
 if __name__ == "__main__":

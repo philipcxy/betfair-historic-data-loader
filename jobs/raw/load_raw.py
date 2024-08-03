@@ -20,7 +20,7 @@ def load_data_to_table(namespace: str, branch: str, location: str):
         F.explode(F.col("mc")).alias("mc"),
     )
 
-    df.write.format("iceberg").save("raw")
+    df.write.format("iceberg").mode("append").save("raw")
 
 
 def load_schema() -> T.StructType:
