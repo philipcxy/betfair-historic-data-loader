@@ -12,16 +12,12 @@ def save(namespace: str, branch: str):
 
     flattened_df = get_flattened_df(spark)
 
-    event = (
-        flattened_df.withColumn("regulators", F.element_at(0, F.col("regulators")))
-        .select(
-            F.col("eventId").alias("id").cast(T.IntegerType()),
-            F.col("eventName").alias("name"),
-            F.col("countryCode").alias("country_code"),
-            F.col("regulators"),
-        )
-        .distinct()
-    )
+    event = flattened_df.select(
+        F.col("eventId").alias("id").cast(T.IntegerType()),
+        F.col("eventName").alias("name"),
+        F.col("countryCode").alias("country_code"),
+        F.col("regulators"),
+    ).distinct()
 
     event.write.format("iceberg").mode("append").save("event")
 
