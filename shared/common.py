@@ -34,14 +34,24 @@ def setup_spark_environment(namespace: str = None, branch: str = None) -> SparkS
 
 @staticmethod
 def get_flattened_df(spark: SparkSession):
-    if not spark.catalog.tableExists("flattened_view"):
+    if not spark.catalog.tableExists("raw_flattened"):
         create_flattened_df(spark)
 
-    return spark.read.table("flattened_view")
+    return spark.read.table("raw_flattened")
 
 
 def create_flattened_df(spark: SparkSession):
-    df: DataFrame = spark.read.table("raw")
+    latest_snapshot: int = spark.sql("""
+                                     SELECT * FROM betting.soccer.raw.snapshots ORDER BY committed_at DESC LIMIT 1
+                                     """)
+    spark.sql(f"""
+                CALL betting.system.create_changelog_view(
+                    table => 'soccer.raw',
+                    options => map('start-snapshot-id', '{latest_snapshot}),
+                                net_changes => true);
+                """)
+
+    df: DataFrame = spark.read.table("raw_changes")
 
     flattened_df: DataFrame = (
         df.select(F.col("pt"), F.col("timestamp"), F.col("mc.*"))
@@ -51,4 +61,4 @@ def create_flattened_df(spark: SparkSession):
         )
     )
 
-    flattened_df.createTempView("flattened_view")
+    flattened_df.write.format("iceberg").mode("overwrite").save("raw_flattened")
