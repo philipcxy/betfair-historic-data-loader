@@ -42,12 +42,15 @@ def get_flattened_df(spark: SparkSession):
 
 def create_flattened_df(spark: SparkSession):
     latest_snapshot: int = spark.sql("""
-                                     SELECT * FROM betting.soccer.raw.snapshots ORDER BY committed_at DESC LIMIT 1
-                                     """)
+                                     SELECT snapshot_id 
+                                     FROM betting.soccer.raw.snapshots 
+                                     ORDER BY committed_at 
+                                     DESC LIMIT 1
+                                     """).first()["snapshot_id"]
     spark.sql(f"""
                 CALL betting.system.create_changelog_view(
                     table => 'soccer.raw',
-                    options => map('start-snapshot-id', '{latest_snapshot}),
+                    options => map('end-snapshot-id', '{latest_snapshot}'),
                                 net_changes => true);
                 """)
 

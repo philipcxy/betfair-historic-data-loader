@@ -12,7 +12,9 @@ def save(namespace: str, branch: str):
 
     flattened_df = get_flattened_df(spark)
     old_market_type = spark.read.table("market_type").alias("old")
+
     w = Window.partitionBy().rowsBetween(Window.unboundedPreceding, Window.currentRow)
+    
     market_type = (
         flattened_df.select(F.col("marketType").alias("type"))
             .alias("new")
