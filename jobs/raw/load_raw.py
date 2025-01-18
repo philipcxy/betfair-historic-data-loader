@@ -6,11 +6,13 @@ from pyspark.sql import types as T
 from shared.common import setup_spark_environment
 
 
-def load_data_to_table(namespace: str, branch: str, location: str):
+def load_data_to_table(
+    namespace: str, branch: str, location: str, path: str = "*"
+) -> None:
     spark = setup_spark_environment(namespace, branch)
 
     df = spark.read.json(
-        f"/{location}/ADVANCED/*",
+        f"/{location}/ADVANCED/{path}",
         recursiveFileLookup=True,
         schema=load_schema(),
     )
@@ -226,7 +228,14 @@ if __name__ == "__main__":
         dest="branch",
         help="If specified creates a new branch in nessie and uses it",
     )
+    parser.add_argument(
+        "--path",
+        type=str,
+        required=False,
+        dest="path",
+        help="If specified filters to the specific path",
+    )
     args = parser.parse_args()
 
     source_folder = "landing"
-    load_data_to_table(args.namespace, args.branch, source_folder)
+    load_data_to_table(args.namespace, args.branch, source_folder, args.path)

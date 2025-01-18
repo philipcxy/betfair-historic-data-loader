@@ -4,13 +4,13 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
-from shared.common import setup_spark_environment
+from shared.common import get_flattened_df, setup_spark_environment
 
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    df = spark.read.table("raw")
+    df = get_flattened_df(spark)
 
     rc_df = (
         df.where(F.col("mc.rc").isNotNull())
@@ -26,22 +26,30 @@ def save(namespace: str, branch: str):
 
     batb_df = (
         rc_df.where(F.col("batb").isNotNull())
-        .withColumn("batb", F.explode("batb"))
-        .withColumn("position", F.element_at(F.col("batb"), 1).cast(T.IntegerType()))
-        .withColumn("odds", F.element_at(F.col("batb"), 2))
-        .withColumn("amount", F.element_at(F.col("batb"), 3))
-        .withColumn("type", F.lit("b"))
+        .withColumns(
+            {
+                "batb": F.explode("batb"),
+                "position": F.element_at(F.col("batb"), 1).cast(T.IntegerType()),
+                "odds": F.element_at(F.col("batb"), 2),
+                "amount": F.element_at(F.col("batb"), 3),
+                "type": F.lit("b"),
+            }
+        )
         .drop(F.col("batb"), F.col("batl"), F.col("trd"))
         .withColumnRenamed("id", "runner_id")
     )
 
     batl_df = (
         rc_df.where(F.col("batl").isNotNull())
-        .withColumn("batl", F.explode("batl"))
-        .withColumn("position", F.element_at(F.col("batl"), 1).cast(T.IntegerType()))
-        .withColumn("odds", F.element_at(F.col("batl"), 2))
-        .withColumn("amount", F.element_at(F.col("batl"), 3))
-        .withColumn("type", F.lit("l"))
+        .withColumns(
+            {
+                "batl": F.explode("batl"),
+                "position": F.element_at(F.col("batl"), 1).cast(T.IntegerType()),
+                "odds": F.element_at(F.col("batl"), 2),
+                "amount": F.element_at(F.col("batl"), 3),
+                "type": F.lit("l"),
+            }
+        )
         .drop(F.col("batb"), F.col("batl"), F.col("trd"))
     )
 
