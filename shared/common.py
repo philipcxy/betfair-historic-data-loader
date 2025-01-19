@@ -32,6 +32,19 @@ def setup_spark_environment(namespace: str = None, branch: str = None) -> SparkS
     return spark
 
 
+def save_table(
+    spark: SparkSession, df: DataFrame, table_name: str, mode: str = "append"
+):
+    if not spark.catalog.tableExists(table_name):
+        df.writeTo(table_name).create()
+
+    match mode:
+        case "overwrite":
+            df.writeTo(table_name).overwrite()
+        case "append":
+            df.writeTo(table_name).append()
+
+
 @staticmethod
 def get_flattened_df(spark: SparkSession):
     if not spark.catalog.tableExists("raw_flattened"):

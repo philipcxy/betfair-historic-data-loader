@@ -3,7 +3,7 @@ import argparse
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
-from shared.common import setup_spark_environment
+from shared.common import save_table, setup_spark_environment
 
 
 def load_data_to_table(namespace: str, branch: str, location: str, path: str) -> None:
@@ -26,7 +26,7 @@ def load_data_to_table(namespace: str, branch: str, location: str, path: str) ->
         )
     )
 
-    df.write.format("iceberg").mode("append").save("raw")
+    save_table(spark, df, "soccer.raw")
 
     # Rewrite files as an optimisation since this table will be used in all of the next steps
     spark.sql(
