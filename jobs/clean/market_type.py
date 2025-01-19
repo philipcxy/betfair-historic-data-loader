@@ -14,18 +14,18 @@ def save(namespace: str, branch: str):
     old_market_type = spark.read.table("market_type").alias("old")
 
     w = Window.partitionBy().rowsBetween(Window.unboundedPreceding, Window.currentRow)
-    
+
     market_type = (
         flattened_df.select(F.col("marketType").alias("type"))
-            .alias("new")
-            .distinct()
-            .join(old_market_type, F.col("old.type") == F.col("new.type"), how="left")
-            .orderBy(F.col("old.id").asc_nulls_last())
-            .withColumn(
-                "new_id", F.sum(F.when(F.col("old.id") == F.lit(0), 0).otherwise(1)).over(w)
-            )
-            .filter(F.isnull(F.col("old.id")))
-            .select(F.col("new_id").alias("id"), F.col("new.type").alias("type"))
+        .alias("new")
+        .distinct()
+        .join(old_market_type, F.col("old.type") == F.col("new.type"), how="left")
+        .orderBy(F.col("old.id").asc_nulls_last())
+        .withColumn(
+            "new_id", F.sum(F.when(F.col("old.id") == F.lit(0), 0).otherwise(1)).over(w)
+        )
+        .filter(F.isnull(F.col("old.id")))
+        .select(F.col("new_id").alias("id"), F.col("new.type").alias("type"))
     )
 
     market_type.write.format("iceberg").mode("append").save("market_type")

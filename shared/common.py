@@ -41,6 +41,15 @@ def get_flattened_df(spark: SparkSession):
 
 
 def create_flattened_df(spark: SparkSession):
+    """
+    TODO: Update function to get latest changes
+    e.g.
+    spark.read
+        .format("iceberg")
+        .option("start-snapshot-id", "10963874102873")
+        .option("end-snapshot-id", "63874143573109")
+        .load("path/to/table")
+    """
     latest_snapshot: int = spark.sql("""
                                      SELECT snapshot_id 
                                      FROM betting.soccer.raw.snapshots 

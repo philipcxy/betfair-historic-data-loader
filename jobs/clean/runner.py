@@ -7,6 +7,9 @@ from shared.common import get_flattened_df, setup_spark_environment
 
 
 def save(namespace: str, branch: str):
+    """
+    TODO: Needs to be updated to use MERG INTO
+    """
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
     flattened_df = get_flattened_df(spark)
@@ -17,6 +20,7 @@ def save(namespace: str, branch: str):
         .select(F.col("id"), F.col("name"))
         .distinct()
     )
+
     runners.write.format("iceberg").mode("append").save("runner")
 
 

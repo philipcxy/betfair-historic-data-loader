@@ -16,10 +16,16 @@ def load_data_to_table(
         recursiveFileLookup=True,
         schema=load_schema(),
     )
-    df = df.select(
-        F.col("pt"),
-        F.to_timestamp(F.col("pt") / 1000).alias("timestamp"),
-        F.explode(F.col("mc")).alias("mc"),
+    df = (
+        df.select(
+            F.col("pt"),
+            F.to_timestamp(F.col("pt") / 1000).alias("timestamp"),
+            F.explode(F.col("mc")).alias("mc"),
+        )
+        .where(F.col("mc.marketDefinition").isNotNull())
+        .select(
+            F.col("id"), F.col("pt"), F.col("timestamp"), F.col("marketDefinition.*")
+        )
     )
 
     df.write.format("iceberg").mode("append").save("raw")
