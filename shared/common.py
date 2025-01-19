@@ -39,8 +39,8 @@ def save_table(
         df.writeTo(table_name).create()
     else:
         match mode:
-            case "overwrite":
-                df.writeTo(table_name).overwrite()
+            case "replace":
+                df.writeTo(table_name).replace()
             case "append":
                 df.writeTo(table_name).append()
 
