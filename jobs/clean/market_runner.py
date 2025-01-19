@@ -4,17 +4,17 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from shared.common import get_flattened_df, setup_spark_environment
+from shared.common import save_table, setup_spark_environment
 
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    flattened_df = get_flattened_df(spark)
+    raw_df = spark.table("soccer.raw")
 
     window = Window.partitionBy(F.col("market_id"), F.col("id"))
     market_runner_df = (
-        flattened_df.select(
+        raw_df.select(
             F.col("id").alias("market_id"), F.explode(F.col("runners")).alias("runner")
         )
         .select(F.col("market_id"), F.col("runner.*"))
@@ -31,7 +31,7 @@ def save(namespace: str, branch: str):
         .distinct()
     )
 
-    market_runner_df.write.format("iceberg").mode("append").save("market_runner")
+    save_table(spark, market_runner_df, "soccer.market_runner")
 
 
 if __name__ == "__main__":

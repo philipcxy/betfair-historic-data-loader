@@ -4,16 +4,16 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
-from shared.common import get_flattened_df, setup_spark_environment
+from shared.common import save_table, setup_spark_environment
 
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    df = get_flattened_df(spark)
+    raw_df = spark.table("soccer.raw")
 
     rc_df = (
-        df.where(F.col("mc.rc").isNotNull())
+        raw_df.where(F.col("mc.rc").isNotNull())
         .select(F.col("pt"), F.col("timestamp"), F.col("mc.*"))
         .withColumn("rc", F.explode(F.col("rc")))
         .select(
@@ -54,7 +54,8 @@ def save(namespace: str, branch: str):
     )
 
     odds_df = batb_df.union(batl_df).drop(F.col("trd"))
-    odds_df.write.format("iceberg").mode("append").save("runner_change")
+
+    save_table(spark, odds_df, "soccer.runner_change")
 
 
 if __name__ == "__main__":

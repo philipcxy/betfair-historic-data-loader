@@ -5,24 +5,24 @@ from pyspark.sql import functions as F
 from pyspark.sql import types as T
 from pyspark.sql.window import Window
 
-from shared.common import get_flattened_df, setup_spark_environment
+from shared.common import save_table, setup_spark_environment
 
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    flattened_df = get_flattened_df(spark)
+    raw_df = spark.table("soccer.raw")
 
     window = Window.partitionBy("eventId").orderBy(F.desc(F.col("pt")))
 
-    event = flattened_df.select(
+    event = raw_df.select(
         F.col("eventId").alias("id").cast(T.IntegerType()),
         F.first(F.col("eventName")).over(window).alias("name"),
         F.first(F.col("countryCode")).over(window).alias("country_code"),
         F.first(F.col("regulators")).over(window).alias("regulators"),
     ).distinct()
 
-    event.write.format("iceberg").mode("append").save("event")
+    save_table(spark, event, "soccer.event")
 
 
 if __name__ == "__main__":

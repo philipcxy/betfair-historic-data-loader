@@ -5,13 +5,13 @@ from pyspark.sql import functions as F
 from pyspark.sql import types as T
 from pyspark.sql.window import Window
 
-from shared.common import get_flattened_df, setup_spark_environment
+from shared.common import save_table, setup_spark_environment
 
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    flattened_df = get_flattened_df(spark)
+    raw_df = spark.table("soccer.raw")
 
     window = (
         Window.partitionBy(F.col("fl.id"))
@@ -21,7 +21,7 @@ def save(namespace: str, branch: str):
 
     market_types = spark.read.table("market_type")
     markets = (
-        flattened_df.alias("fl")
+        raw_df.alias("fl")
         .join(market_types.alias("mt"), F.col("fl.marketType") == F.col("mt.type"))
         .withColumn(
             "only_inplay",
@@ -53,7 +53,7 @@ def save(namespace: str, branch: str):
         .distinct()
     )
 
-    markets.write.format("iceberg").mode("append").save("market")
+    save_table(spark, markets, "soccer.market")
 
 
 if __name__ == "__main__":

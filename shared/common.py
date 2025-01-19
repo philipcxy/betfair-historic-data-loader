@@ -46,14 +46,7 @@ def save_table(
 
 
 @staticmethod
-def get_flattened_df(spark: SparkSession):
-    if not spark.catalog.tableExists("raw_flattened"):
-        create_flattened_df(spark)
-
-    return spark.read.table("raw_flattened")
-
-
-def create_flattened_df(spark: SparkSession):
+def get_raw_df(spark: SparkSession):
     """
     TODO: Update function to get latest changes
     e.g.
@@ -63,6 +56,13 @@ def create_flattened_df(spark: SparkSession):
         .option("end-snapshot-id", "63874143573109")
         .load("path/to/table")
     """
+    if not spark.catalog.tableExists("raw_flattened"):
+        create_flattened_df(spark)
+
+    return spark.read.table("raw_flattened")
+
+
+def create_flattened_df(spark: SparkSession):
     latest_snapshot: int = spark.sql("""
                                      SELECT snapshot_id 
                                      FROM betting.soccer.raw.snapshots 

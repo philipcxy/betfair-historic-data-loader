@@ -3,7 +3,7 @@ import argparse
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-from shared.common import get_flattened_df, setup_spark_environment
+from shared.common import save_table, setup_spark_environment
 
 
 def save(namespace: str, branch: str):
@@ -12,16 +12,16 @@ def save(namespace: str, branch: str):
     """
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    flattened_df = get_flattened_df(spark)
+    raw_df = spark.table("soccer.raw")
 
     runners = (
-        flattened_df.select(F.explode(F.col("runners")).alias("runners"))
+        raw_df.select(F.explode(F.col("runners")).alias("runners"))
         .select(F.col("runners.*"))
         .select(F.col("id"), F.col("name"))
         .distinct()
     )
 
-    runners.write.format("iceberg").mode("append").save("runner")
+    save_table(spark, runners, "soccer.runner")
 
 
 if __name__ == "__main__":

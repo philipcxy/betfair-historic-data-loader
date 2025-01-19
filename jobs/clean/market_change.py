@@ -3,15 +3,15 @@ import argparse
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
-from shared.common import get_flattened_df, setup_spark_environment
+from shared.common import save_table, setup_spark_environment
 
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    flattened_df = get_flattened_df(spark)
+    raw_df = spark.table("soccer.raw")
 
-    market_change = flattened_df.select(
+    market_change = raw_df.select(
         F.col("id").alias("market_id"),
         F.col("pt").alias("epoch"),
         F.col("timestamp"),
@@ -31,7 +31,7 @@ def save(namespace: str, branch: str):
         F.col("version"),
     )
 
-    market_change.write.format("iceberg").mode("append").save("market_change")
+    save_table(spark, market_change, "soccer.market_change")
 
 
 if __name__ == "__main__":

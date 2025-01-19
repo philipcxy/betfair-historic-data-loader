@@ -4,19 +4,23 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from shared.common import get_flattened_df, setup_spark_environment
+from shared.common import save_table, setup_spark_environment
 
 
 def save(namespace: str, branch: str):
+    """
+    TODO: Change to MERGE into market_type table
+    """
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    flattened_df = get_flattened_df(spark)
+    raw_df = spark.table("soccer.raw")
+
     old_market_type = spark.read.table("market_type").alias("old")
 
     w = Window.partitionBy().rowsBetween(Window.unboundedPreceding, Window.currentRow)
 
     market_type = (
-        flattened_df.select(F.col("marketType").alias("type"))
+        raw_df.select(F.col("marketType").alias("type"))
         .alias("new")
         .distinct()
         .join(old_market_type, F.col("old.type") == F.col("new.type"), how="left")
@@ -28,7 +32,7 @@ def save(namespace: str, branch: str):
         .select(F.col("new_id").alias("id"), F.col("new.type").alias("type"))
     )
 
-    market_type.write.format("iceberg").mode("append").save("market_type")
+    save_table(spark, market_type, "soccer.market_type")
 
 
 if __name__ == "__main__":
