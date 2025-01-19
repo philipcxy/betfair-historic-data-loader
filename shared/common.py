@@ -38,11 +38,12 @@ def save_table(
     if not spark.catalog.tableExists(table_name):
         df.writeTo(table_name).create()
 
-    match mode:
-        case "overwrite":
-            df.writeTo(table_name).overwrite()
-        case "append":
-            df.writeTo(table_name).append()
+    else:
+        match mode:
+            case "overwrite":
+                df.writeTo(table_name).overwrite()
+            case "append":
+                df.writeTo(table_name).append()
 
 
 @staticmethod
