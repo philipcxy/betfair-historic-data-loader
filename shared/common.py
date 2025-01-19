@@ -37,7 +37,6 @@ def save_table(
 ):
     if not spark.catalog.tableExists(table_name):
         df.writeTo(table_name).create()
-
     else:
         match mode:
             case "overwrite":

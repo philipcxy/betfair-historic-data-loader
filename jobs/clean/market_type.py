@@ -14,9 +14,9 @@ def save(namespace: str, branch: str):
 
     raw_df = spark.table("soccer.raw")
 
-    market_type = raw_df.select(F.col("id"), F.col("marketType"))
+    market_type = raw_df.select(F.col("id"), F.col("marketType").alias("type"))
 
-    save_table(spark, market_type, "soccer.market_type")
+    save_table(spark, market_type, "soccer.market_type", mode="overwrite")
 
 
 if __name__ == "__main__":
