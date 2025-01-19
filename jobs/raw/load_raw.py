@@ -30,6 +30,11 @@ def load_data_to_table(
 
     df.write.format("iceberg").mode("append").save("raw")
 
+    # Rewrite files as an optimisation since this table will be used in all of the next steps
+    spark.sql(
+        "CALL betting.system.rewrite_data_files(table => 'soccer.raw', strategy => 'sort', sort_order => 'pt DESC NULLS LAST')"
+    )
+
 
 def load_schema() -> T.StructType:
     schema = T.StructType(
