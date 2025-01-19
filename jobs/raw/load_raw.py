@@ -31,7 +31,7 @@ def load_data_to_table(namespace: str, branch: str, location: str, path: str) ->
 
     # Rewrite files as an optimisation since this table will be used in all of the next steps
     spark.sql(
-        "CALL betting.system.rewrite_data_files(table => 'soccer.raw', strategy => 'sort', sort_order => 'pt DESC NULLS LAST')"
+        "CALL betting.system.rewrite_data_files(table => 'soccer.raw', strategy => 'sort', sort_order => 'id DESC NULLS LAST')"
     )
 
 
