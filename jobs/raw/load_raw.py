@@ -20,6 +20,7 @@ def load_data_to_table(namespace: str, branch: str, location: str, path: str) ->
             F.to_timestamp(F.col("pt") / 1000).alias("timestamp"),
             F.explode(F.col("mc")).alias("mc"),
         )
+        .select(F.col("pt"), F.col("timestamp"), F.col("mc.*"))
         .where(F.col("mc.marketDefinition").isNotNull())
         .select(
             F.col("id"), F.col("pt"), F.col("timestamp"), F.col("marketDefinition.*")
