@@ -55,7 +55,7 @@ def save(namespace: str, branch: str):
 
     odds_df = batb_df.union(batl_df).drop(F.col("trd"))
 
-    save_table(spark, odds_df, "soccer.runner_change")
+    save_table(spark, odds_df, "soccer.runner_change", mode="replace")
 
 
 if __name__ == "__main__":
