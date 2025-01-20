@@ -14,7 +14,7 @@ def save(namespace: str, branch: str):
 
     rc_df = (
         raw_df.where(F.col("rc").isNotNull())
-        .select(F.col("pt"), F.col("timestamp"), F.col("mc.*"))
+        .select(F.col("pt"), F.col("timestamp"), F.col("rc"), F.col("id"))
         .withColumn("rc", F.explode(F.col("rc")))
         .select(
             F.col("id").alias("market_id"),
@@ -26,9 +26,9 @@ def save(namespace: str, branch: str):
 
     batb_df = (
         rc_df.where(F.col("batb").isNotNull())
+        .withColumn("batb", F.explode(F.col("batb")))
         .withColumns(
             {
-                "batb": F.explode("batb"),
                 "position": F.element_at(F.col("batb"), 1).cast(T.IntegerType()),
                 "odds": F.element_at(F.col("batb"), 2),
                 "amount": F.element_at(F.col("batb"), 3),
@@ -41,9 +41,9 @@ def save(namespace: str, branch: str):
 
     batl_df = (
         rc_df.where(F.col("batl").isNotNull())
+        .withColumn("batl", F.explode(F.col("batl")))
         .withColumns(
             {
-                "batl": F.explode("batl"),
                 "position": F.element_at(F.col("batl"), 1).cast(T.IntegerType()),
                 "odds": F.element_at(F.col("batl"), 2),
                 "amount": F.element_at(F.col("batl"), 3),
