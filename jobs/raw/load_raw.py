@@ -23,11 +23,15 @@ def load_data_to_table(namespace: str, branch: str, location: str, path: str) ->
         .select(F.col("pt"), F.col("timestamp"), F.col("mc.*"))
         .where(F.col("mc.marketDefinition").isNotNull())
         .select(
-            F.col("id"), F.col("pt"), F.col("timestamp"), F.col("marketDefinition.*")
+            F.col("id"),
+            F.col("pt"),
+            F.col("timestamp"),
+            F.col("marketDefinition.*"),
+            F.col("rc"),
         )
     )
 
-    save_table(spark, df, "soccer.raw")
+    save_table(spark, df, "soccer.raw", "overwrite")
 
     # Rewrite files as an optimisation since this table will be used in all of the next steps
     spark.sql(

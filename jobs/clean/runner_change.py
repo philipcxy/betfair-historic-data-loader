@@ -13,7 +13,7 @@ def save(namespace: str, branch: str):
     raw_df = spark.table("soccer.raw")
 
     rc_df = (
-        raw_df.where(F.col("mc.rc").isNotNull())
+        raw_df.where(F.col("rc").isNotNull())
         .select(F.col("pt"), F.col("timestamp"), F.col("mc.*"))
         .withColumn("rc", F.explode(F.col("rc")))
         .select(
