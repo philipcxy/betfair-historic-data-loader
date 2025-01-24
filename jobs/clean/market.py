@@ -1,9 +1,6 @@
 import argparse
 
 from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
-from pyspark.sql import types as T
-from pyspark.sql.window import Window
 
 from shared.common import save_table, setup_spark_environment
 
@@ -11,47 +8,18 @@ from shared.common import save_table, setup_spark_environment
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.raw")
-
-    window = (
-        Window.partitionBy(F.col("fl.id"))
-        .orderBy(F.col("timestamp"))
-        .rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)
-    )
-
-    market_types = spark.read.table("market_type")
-    markets = (
-        raw_df.alias("fl")
-        .join(market_types.alias("mt"), F.col("fl.marketType") == F.col("mt.type"))
-        .withColumn(
-            "only_inplay",
-            F.when(F.col("inPlay") == F.lit(True), F.col("timestamp")).otherwise(
-                F.lit(None)
-            ),
-        )
-        .select(
-            F.col("fl.id"),
-            F.col("eventId").alias("event_id").cast(T.IntegerType()),
-            F.col("mt.id").alias("type_id"),
-            F.max("openDate")
-            .over(window)
-            .alias("scheduled_time")
-            .cast(T.TimestampType()),
-            F.max("marketTime")
-            .over(window)
-            .alias("start_time")
-            .cast(T.TimestampType()),
-            F.max("settledTime")
-            .over(window)
-            .alias("settled_time")
-            .cast(T.TimestampType()),
-            F.first(F.col("only_inplay"), ignorenulls=True)
-            .over(window)
-            .alias("kick_off"),
-            F.col("numberOfWinners").alias("num_winners"),
-        )
-        .distinct()
-    )
+    markets = spark.sql("""
+                        SELECT id, 
+                            CAST(eventId as INT) as event_id
+                            , marketType as type_id
+                            , cast(max(openDate) as timestamp) as scheduled_time
+                            , cast(max(marketTime) as timestamp) as start_time
+                            , cast(max(settledTime) as timestamp) as settled_time
+                            , min(CASE WHEN inPlay == 'true' THEN timestamp ELSE NULL END) as kick_off
+                            , numberOfWinners as num_winners
+                        FROM raw
+                        GROUP BY id, eventId, marketType, numberOfWinners
+                    """)
 
     save_table(spark, markets, "soccer.market")
 
