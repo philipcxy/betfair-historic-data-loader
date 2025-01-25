@@ -13,7 +13,7 @@ def load_data_to_table(namespace: str, branch: str) -> None:
     df = spark.sql("""
         WITH filtered_markets as (
             SELECT *
-            FROM soccer.dim_runner r
+            FROM soccer.marts.dim_runner r
             WHERE r.market_type_id = 34
         )
         SELECT f.name,
@@ -32,9 +32,9 @@ def load_data_to_table(namespace: str, branch: str) -> None:
             min(fe.third_odds) as third_odds,
             e.first_goal_minute
         FROM filtered_markets f
-        INNER JOIN soccer.fact_runner_odds fe
+        INNER JOIN soccer.marts.fact_runner_odds fe
             ON f.id = fe.runner_key
-        INNER JOIN soccer.dim_first_goal e
+        INNER JOIN soccer.marts.dim_first_goal e
             ON e.event_id = f.event_id
         WHERE fe.minute between e.first_goal_minute AND e.first_goal_minute + 2
         GROUP BY f.name, 
@@ -50,7 +50,9 @@ def load_data_to_table(namespace: str, branch: str) -> None:
             e.first_goal_minute
     """)
 
-    save_table(spark, df, "soccer.fact_first_goal_match_odds", mode=WriteMode.REPLACE)
+    save_table(
+        spark, df, "soccer.marts.fact_first_goal_match_odds", mode=WriteMode.APPEND
+    )
 
 
 if __name__ == "__main__":

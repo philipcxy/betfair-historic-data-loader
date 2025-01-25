@@ -32,11 +32,11 @@ def load_data_to_table(namespace: str, branch: str, location: str, path: str) ->
         )
     )
 
-    save_table(spark, df, "soccer.raw", WriteMode.APPEND)
+    save_table(spark, df, "soccer.landing.raw", WriteMode.APPEND)
 
     # Rewrite files as an optimisation since this table will be used in all of the next steps
     spark.sql(
-        "CALL betting.system.rewrite_data_files(table => 'soccer.raw', strategy => 'sort', sort_order => 'id DESC NULLS LAST')"
+        "CALL betting.system.rewrite_data_files(table => 'soccer.landing.raw', strategy => 'sort', sort_order => 'id DESC NULLS LAST')"
     )
 
 

@@ -11,7 +11,7 @@ from shared.enums import WriteMode
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.raw")
+    raw_df = spark.table("soccer.landing.raw")
 
     rc_df = (
         raw_df.where(F.col("rc").isNotNull())
@@ -56,7 +56,7 @@ def save(namespace: str, branch: str):
 
     odds_df = batb_df.union(batl_df).drop(F.col("trd"))
 
-    save_table(spark, odds_df, "soccer.runner_change", mode=WriteMode.REPLACE)
+    save_table(spark, odds_df, "soccer.clean.runner_change", mode=WriteMode.APPEND)
 
 
 if __name__ == "__main__":

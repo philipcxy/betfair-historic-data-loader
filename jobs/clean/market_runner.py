@@ -10,7 +10,7 @@ from shared.common import save_table, setup_spark_environment
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.raw")
+    raw_df = spark.table("soccer.landing.raw")
 
     window = Window.partitionBy(F.col("market_id"), F.col("id"))
     market_runner_df = (
@@ -31,7 +31,7 @@ def save(namespace: str, branch: str):
         .distinct()
     )
 
-    save_table(spark, market_runner_df, "soccer.market_runner")
+    save_table(spark, market_runner_df, "soccer.clean.market_runner")
 
 
 if __name__ == "__main__":

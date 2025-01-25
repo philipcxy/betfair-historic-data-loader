@@ -10,8 +10,8 @@ from shared.enums import WriteMode
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
-    df_market = spark.read.table("soccer.market").alias("m")
-    df_runner = spark.read.table("soccer.market_runner").alias("mr")
+    df_market = spark.read.table("soccer.clean.market").alias("m")
+    df_runner = spark.read.table("soccer.clean.market_runner").alias("mr")
 
     over_under_point_five_goals_market_type_id = 63
     over_point_five_goals_runner_id = 5851483
@@ -39,7 +39,7 @@ def save(namespace: str, branch: str):
         )
     ).alias("event_first_goal")
 
-    save_table(spark, event, "soccer.dim_first_goal", mode=WriteMode.REPLACE)
+    save_table(spark, event, "soccer.marts.dim_first_goal", mode=WriteMode.APPEND)
 
 
 if __name__ == "__main__":

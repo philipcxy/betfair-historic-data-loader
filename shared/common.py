@@ -44,7 +44,7 @@ def save_table(
         df.writeTo(table_name).create()
     else:
         match mode:
-            case WriteMode.REPLACE:
+            case WriteMode.APPEND:
                 df.writeTo(table_name).replace()
             case WriteMode.APPEND:
                 df.writeTo(table_name).append()
@@ -70,13 +70,13 @@ def get_raw_df(spark: SparkSession):
 def create_flattened_df(spark: SparkSession):
     latest_snapshot: int = spark.sql("""
                                      SELECT snapshot_id 
-                                     FROM betting.soccer.raw.snapshots 
+                                     FROM betting.soccer.landing.raw.snapshots 
                                      ORDER BY committed_at 
                                      DESC LIMIT 1
                                      """).first()["snapshot_id"]
     spark.sql(f"""
                 CALL betting.system.create_changelog_view(
-                    table => 'soccer.raw',
+                    table => 'soccer.landing.raw',
                     options => map('end-snapshot-id', '{latest_snapshot}'),
                                 net_changes => true);
                 """)
