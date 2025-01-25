@@ -14,7 +14,7 @@ def load_data_to_table(namespace: str, branch: str) -> None:
         WITH filtered_markets as (
             SELECT *
             FROM soccer.dim_runner r
-            WHERE r.market_type_id = 18
+            WHERE r.market_type_id = 34
         )
         SELECT f.name,
             CAST(from_unixtime(first(fe.pt/1000)) AS date) as timestamp,
@@ -50,7 +50,7 @@ def load_data_to_table(namespace: str, branch: str) -> None:
             e.first_goal_minute
     """)
 
-    save_table(spark, df, "soccer.dim_first_goal_match_odds", mode=WriteMode.REPLACE)
+    save_table(spark, df, "soccer.fact_first_goal_match_odds", mode=WriteMode.REPLACE)
 
 
 if __name__ == "__main__":
