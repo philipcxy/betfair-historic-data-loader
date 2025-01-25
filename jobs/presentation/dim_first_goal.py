@@ -17,9 +17,11 @@ def save(namespace: str, branch: str):
     over_point_five_goals_runner_id = 5851483
 
     event = (
-        df_market.filter((F.col("type_id") == over_under_point_five_goals_market_type_id))
+        df_market.filter(
+            (F.col("type_id") == over_under_point_five_goals_market_type_id)
+        )
         .join(df_runner, (F.col("m.id") == F.col("mr.market_id")), "inner")
-        .filter((F.col("mr.winner") == F.lit(True)) & (F.col("m.kick_off").isNull()))
+        .filter((F.col("mr.winner") == F.lit(True)) & (F.col("m.kick_off").isNotNull()))
         .withColumn(
             "first_goal_minute",
             F.when(
