@@ -3,6 +3,7 @@ import argparse
 from pyspark.sql import SparkSession
 
 from shared.common import save_table, setup_spark_environment
+from shared.enums import WriteMode
 
 
 def save(namespace: str, branch: str):
@@ -21,7 +22,7 @@ def save(namespace: str, branch: str):
                         GROUP BY id, eventId, marketType, numberOfWinners
                     """)
 
-    save_table(spark, markets, "soccer.market")
+    save_table(spark, markets, "soccer.market", WriteMode.REPLACE)
 
 
 if __name__ == "__main__":

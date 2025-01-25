@@ -4,6 +4,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 from shared.common import save_table, setup_spark_environment
+from shared.enums import WriteMode
 
 
 def save(namespace: str, branch: str):
@@ -16,7 +17,7 @@ def save(namespace: str, branch: str):
 
     market_type = raw_df.select(F.col("id"), F.col("marketType").alias("type"))
 
-    save_table(spark, market_type, "soccer.market_type", mode="replace")
+    save_table(spark, market_type, "soccer.market_type", mode=WriteMode.REPLACE)
 
 
 if __name__ == "__main__":

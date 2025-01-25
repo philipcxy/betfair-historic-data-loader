@@ -5,6 +5,7 @@ from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
 from shared.common import save_table, setup_spark_environment
+from shared.enums import WriteMode
 
 
 def save(namespace: str, branch: str):
@@ -55,7 +56,7 @@ def save(namespace: str, branch: str):
 
     odds_df = batb_df.union(batl_df).drop(F.col("trd"))
 
-    save_table(spark, odds_df, "soccer.runner_change", mode="replace")
+    save_table(spark, odds_df, "soccer.runner_change", mode=WriteMode.REPLACE)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
 from shared.common import save_table, setup_spark_environment
+from shared.enums import WriteMode
 
 
 def load_data_to_table(namespace: str, branch: str, location: str, path: str) -> None:
@@ -31,7 +32,7 @@ def load_data_to_table(namespace: str, branch: str, location: str, path: str) ->
         )
     )
 
-    save_table(spark, df, "soccer.raw", "replace")
+    save_table(spark, df, "soccer.raw", WriteMode.REPLACE)
 
     # Rewrite files as an optimisation since this table will be used in all of the next steps
     spark.sql(

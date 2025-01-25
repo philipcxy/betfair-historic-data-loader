@@ -2,6 +2,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.dataframe import DataFrame
 
+from shared.enums import WriteMode
+
 
 @staticmethod
 def get_spark_session() -> SparkSession:
@@ -33,15 +35,18 @@ def setup_spark_environment(namespace: str = None, branch: str = None) -> SparkS
 
 
 def save_table(
-    spark: SparkSession, df: DataFrame, table_name: str, mode: str = "append"
+    spark: SparkSession,
+    df: DataFrame,
+    table_name: str,
+    mode: WriteMode = WriteMode.APPEND,
 ):
     if not spark.catalog.tableExists(table_name):
         df.writeTo(table_name).create()
     else:
         match mode:
-            case "replace":
+            case WriteMode.REPLACE:
                 df.writeTo(table_name).replace()
-            case "append":
+            case WriteMode.APPEND:
                 df.writeTo(table_name).append()
 
 
