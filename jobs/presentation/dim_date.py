@@ -5,7 +5,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
-from shared.common import setup_spark_environment
+from shared.common import save_table, setup_spark_environment
+from shared.enums import WriteMode
 
 
 def save(namespace: str, branch: str):
@@ -53,7 +54,7 @@ def save(namespace: str, branch: str):
         F.col("calendar_day"),
     )
 
-    dates_df.write.format("iceberg").saveAsTable("dim_date")
+    save_table(spark, dates_df, "soccer.dim_date", mode=WriteMode.REPLACE)
 
 
 if __name__ == "__main__":

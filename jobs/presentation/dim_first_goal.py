@@ -4,7 +4,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
-from shared.common import setup_spark_environment
+from shared.common import save_table, setup_spark_environment
+from shared.enums import WriteMode
 
 
 def save(namespace: str, branch: str):
@@ -15,11 +16,10 @@ def save(namespace: str, branch: str):
     over_under_point_five_goals_market_id = 8589934605
     over_point_five_goals_runner_id = 5851483
 
-    # TODO: Filter out matches not turning inplay
     event = (
         df_market.filter((F.col("type_id") == over_under_point_five_goals_market_id))
         .join(df_runner, (F.col("m.id") == F.col("mr.market_id")), "inner")
-        .filter(F.col("mr.winner") == True)
+        .filter(F.col("mr.winner") == True & F.col("m.kick_off").isNull())
         .withColumn(
             "first_goal_minute",
             F.when(
@@ -37,7 +37,7 @@ def save(namespace: str, branch: str):
         )
     ).alias("event_first_goal")
 
-    event.write.format("iceberg").mode("overwrite").save("dim_first_goal")
+    save_table(spark, event, "soccer.dim_first_goal", mode=WriteMode.REPLACE)
 
 
 if __name__ == "__main__":

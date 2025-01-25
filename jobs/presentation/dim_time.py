@@ -5,7 +5,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
-from shared.common import setup_spark_environment
+from shared.common import save_table, setup_spark_environment
+from shared.enums import WriteMode
 
 
 def save(namespace: str, branch: str):
@@ -47,7 +48,7 @@ def save(namespace: str, branch: str):
         F.col("minute"),
     )
 
-    time_df.write.format("iceberg").mode("overwrite").saveAsTable("dim_time")
+    save_table(spark, time_df, "soccer.dim_time", mode=WriteMode.REPLACE)
 
 
 if __name__ == "__main__":
