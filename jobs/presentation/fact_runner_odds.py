@@ -11,14 +11,14 @@ from shared.enums import WriteMode
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
-    rc_df = spark.read.table("runner_change").alias("rc")
+    rc_df = spark.read.table("soccer.runner_change").alias("rc")
     market_df = (
-        spark.read.table("market")
+        spark.read.table("soccer.market")
         .select(F.col("id").alias("market_id"), F.col("kick_off"))
         .alias("m")
     )
     dim_runner = (
-        spark.read.table("dim_runner")
+        spark.read.table("soccer.dim_runner")
         .select(F.col("id"), F.col("market_id"), F.col("runner_id"))
         .alias("dr")
     )

@@ -10,8 +10,8 @@ from shared.enums import WriteMode
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
-    df_market = spark.read.table("market").alias("m")
-    df_runner = spark.read.table("market_runner").alias("mr")
+    df_market = spark.read.table("soccer.market").alias("m")
+    df_runner = spark.read.table("soccer.market_runner").alias("mr")
 
     over_under_point_five_goals_market_id = 8589934605
     over_point_five_goals_runner_id = 5851483

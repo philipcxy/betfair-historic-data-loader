@@ -12,12 +12,22 @@ from shared.enums import WriteMode
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    runner = spark.read.table("runner").alias("r")
-    runner_change = spark.read.table("runner_change").alias("rc")
-    market_runner = spark.read.table("market_runner").alias("mr")
-    market = spark.read.table("market").alias("m")
-    market_type = spark.read.table("market_type").alias("mt")
-    event = spark.read.table("event").alias("e")
+    runner = spark.read.table("soccer.runner").alias("r")
+    runner_change = spark.read.table("soccer.runner_change").alias("rc")
+    market_runner = spark.read.table("soccer.market_runner").alias("mr")
+    market = spark.read.table("soccer.market").alias("m")
+    market_type = spark.read.table("soccer.market_type").alias("mt")
+    event = spark.read.table("soccer.event").alias("e")
+
+    spark.sql(
+        "CALL betting.system.rewrite_data_files(table => 'soccer.runner', strategy => 'sort', sort_order => 'id DESC NULLS LAST')"
+    )
+    spark.sql(
+        "CALL betting.system.rewrite_data_files(table => 'soccer.runner_change', strategy => 'sort', sort_order => 'market_id DESC NULLS LAST, runner_id DESC NULLS LAST')"
+    )
+    spark.sql(
+        "CALL betting.system.rewrite_data_files(table => 'soccer.market_runner', strategy => 'sort', sort_order => 'market_id DESC NULLS LAST, runner_id DESC NULLS LAST')"
+    )
 
     window = (
         Window.partitionBy(F.col("rc.market_id"), F.col("rc.runner_id"))
