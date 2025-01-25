@@ -10,16 +10,18 @@ def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
     markets = spark.sql("""
-                        SELECT id, 
+                        SELECT raw.id, 
                             CAST(eventId as INT) as event_id
-                            , marketType as type_id
+                            , mt.id as type_id
                             , cast(max(openDate) as timestamp) as scheduled_time
                             , cast(max(marketTime) as timestamp) as start_time
                             , cast(max(settledTime) as timestamp) as settled_time
                             , min(CASE WHEN inPlay == 'true' THEN timestamp ELSE NULL END) as kick_off
                             , numberOfWinners as num_winners
                         FROM raw
-                        GROUP BY id, eventId, marketType, numberOfWinners
+                        INNER JOIN market_type mt
+                        ON raw.marketType = mt.type
+                        GROUP BY raw.id, mt.id, eventId, marketType, numberOfWinners
                     """)
 
     save_table(spark, markets, "soccer.market", WriteMode.REPLACE)
