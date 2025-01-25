@@ -32,7 +32,7 @@ def load_data_to_table(namespace: str, branch: str, location: str, path: str) ->
         )
     )
 
-    save_table(spark, df, "soccer.raw", WriteMode.REPLACE)
+    save_table(spark, df, "soccer.raw", WriteMode.APPEND)
 
     # Rewrite files as an optimisation since this table will be used in all of the next steps
     spark.sql(
