@@ -19,16 +19,6 @@ def save(namespace: str, branch: str):
     market_type = spark.read.table("soccer.market_type").alias("mt")
     event = spark.read.table("soccer.event").alias("e")
 
-    spark.sql(
-        "CALL betting.system.rewrite_data_files(table => 'soccer.runner', strategy => 'sort', sort_order => 'id DESC NULLS LAST')"
-    )
-    spark.sql(
-        "CALL betting.system.rewrite_data_files(table => 'soccer.runner_change', strategy => 'sort', sort_order => 'market_id DESC NULLS LAST, runner_id DESC NULLS LAST')"
-    )
-    spark.sql(
-        "CALL betting.system.rewrite_data_files(table => 'soccer.market_runner', strategy => 'sort', sort_order => 'market_id DESC NULLS LAST, runner_id DESC NULLS LAST')"
-    )
-
     window = (
         Window.partitionBy(F.col("rc.market_id"), F.col("rc.runner_id"))
         .orderBy(F.col("pt"))
