@@ -13,11 +13,11 @@ def save(namespace: str, branch: str):
     df_market = spark.read.table("soccer.market").alias("m")
     df_runner = spark.read.table("soccer.market_runner").alias("mr")
 
-    over_under_point_five_goals_market_id = 8589934605
+    over_under_point_five_goals_market_type_id = 63
     over_point_five_goals_runner_id = 5851483
 
     event = (
-        df_market.filter((F.col("type_id") == over_under_point_five_goals_market_id))
+        df_market.filter((F.col("type_id") == over_under_point_five_goals_market_type_id))
         .join(df_runner, (F.col("m.id") == F.col("mr.market_id")), "inner")
         .filter((F.col("mr.winner") == F.lit(True)) & (F.col("m.kick_off").isNull()))
         .withColumn(
