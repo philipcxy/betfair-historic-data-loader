@@ -16,7 +16,8 @@ def save(namespace: str, branch: str):
     raw_df = spark.table("soccer.raw")
 
     market_type = raw_df.select(
-        F.col("id"), F.col("marketType").alias("type")
+        F.monotonically_increasing_id().alias("market_type_id"),
+        F.col("marketType").alias("type"),
     ).distinct()
 
     save_table(spark, market_type, "soccer.market_type", mode=WriteMode.REPLACE)
