@@ -13,7 +13,7 @@ def save(namespace: str, branch: str):
     """
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.landing.raw")
+    raw_df = spark.table("soccer.raw")
 
     market_type = (
         raw_df.select(
@@ -23,7 +23,7 @@ def save(namespace: str, branch: str):
         .withColumn("id", F.monotonically_increasing_id())
     )
 
-    save_table(spark, market_type, "soccer.clean.market_type", mode=WriteMode.APPEND)
+    save_table(spark, market_type, "soccer.market_type", mode=WriteMode.APPEND)
 
 
 if __name__ == "__main__":

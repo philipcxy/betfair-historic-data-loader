@@ -11,7 +11,7 @@ from shared.common import save_table, setup_spark_environment
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.landing.raw")
+    raw_df = spark.table("soccer.raw")
 
     window = Window.partitionBy("eventId").orderBy(F.desc(F.col("pt")))
 
@@ -22,7 +22,7 @@ def save(namespace: str, branch: str):
         F.first(F.col("regulators")).over(window).alias("regulators"),
     ).distinct()
 
-    save_table(spark, event, "soccer.clean.event")
+    save_table(spark, event, "soccer.event")
 
 
 if __name__ == "__main__":

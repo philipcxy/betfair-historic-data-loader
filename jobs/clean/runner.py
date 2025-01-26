@@ -12,7 +12,7 @@ def save(namespace: str, branch: str):
     """
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.landing.raw")
+    raw_df = spark.table("soccer.raw")
 
     runners = (
         raw_df.select(F.explode(F.col("runners")).alias("runners"))
@@ -21,7 +21,7 @@ def save(namespace: str, branch: str):
         .distinct()
     )
 
-    save_table(spark, runners, "soccer.clean.runner")
+    save_table(spark, runners, "soccer.runner")
 
 
 if __name__ == "__main__":
