@@ -34,7 +34,9 @@ def load_data_to_table(namespace: str, branch: str, location: str, path: str) ->
 
     save_table(spark, df, "soccer.landing.raw", WriteMode.APPEND)
 
-    # Rewrite files as an optimisation since this table will be used in all of the next steps
+
+def rewrite_files(namespace: str, branch: str) -> None:
+    spark = setup_spark_environment(namespace, branch)
     spark.sql(
         "CALL betting.system.rewrite_data_files(table => 'soccer.landing.raw', strategy => 'sort', sort_order => 'id DESC NULLS LAST')"
     )
@@ -250,9 +252,26 @@ if __name__ == "__main__":
         dest="path",
         help="If specified filters to the specific path",
     )
+    parser.add_argument(
+        "--load_data",
+        type=bool,
+        dest="load_data",
+        default=False,
+        required=False,
+    )
+    parser.add_argument(
+        "--rerwrite_files",
+        type=bool,
+        dest="rewrite_files",
+        default=False,
+        required=False,
+    )
     args = parser.parse_args()
 
-    source_folder = "landing"
-    load_data_to_table(
-        args.namespace, args.branch, source_folder, args.path if args.path else "*"
-    )
+    if args.rewrite_files:
+        rewrite_files(args.namespace, args.branch)
+    else:
+        source_folder = "landing"
+        load_data_to_table(
+            args.namespace, args.branch, source_folder, args.path if args.path else "*"
+        )
