@@ -260,7 +260,7 @@ if __name__ == "__main__":
         required=False,
     )
     parser.add_argument(
-        "--rerwrite_files",
+        "--rewrite_files",
         type=bool,
         dest="rewrite_files",
         default=False,

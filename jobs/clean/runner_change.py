@@ -83,7 +83,7 @@ if __name__ == "__main__":
         help="If specified creates a new branch in nessie and uses it",
     )
     parser.add_argument(
-        "--rerwrite_files",
+        "--rewrite_files",
         type=bool,
         dest="rewrite_files",
         default=False,
