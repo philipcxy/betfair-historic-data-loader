@@ -48,7 +48,7 @@ def save(namespace: str, branch: str):
         F.col("minute"),
     )
 
-    save_table(spark, time_df, "soccer.marts.dim_time", mode=WriteMode.APPEND)
+    save_table(spark, time_df, "soccer.dim_time", mode=WriteMode.APPEND)
 
 
 if __name__ == "__main__":

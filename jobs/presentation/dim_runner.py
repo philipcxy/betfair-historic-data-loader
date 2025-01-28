@@ -12,12 +12,12 @@ from shared.enums import WriteMode
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    runner = spark.read.table("soccer.clean.runner").alias("r")
-    runner_change = spark.read.table("soccer.clean.runner_change").alias("rc")
-    market_runner = spark.read.table("soccer.clean.market_runner").alias("mr")
-    market = spark.read.table("soccer.clean.market").alias("m")
-    market_type = spark.read.table("soccer.clean.market_type").alias("mt")
-    event = spark.read.table("soccer.clean.event").alias("e")
+    runner = spark.read.table("soccer.runner").alias("r")
+    runner_change = spark.read.table("soccer.runner_change").alias("rc")
+    market_runner = spark.read.table("soccer.market_runner").alias("mr")
+    market = spark.read.table("soccer.market").alias("m")
+    market_type = spark.read.table("soccer.market_type").alias("mt")
+    event = spark.read.table("soccer.event").alias("e")
 
     window = (
         Window.partitionBy(F.col("rc.market_id"), F.col("rc.runner_id"))
@@ -126,7 +126,7 @@ def save(namespace: str, branch: str):
         .distinct()
     )
 
-    save_table(spark, dim_runner, "soccer.marts.dim_runner", mode=WriteMode.APPEND)
+    save_table(spark, dim_runner, "soccer.dim_runner", mode=WriteMode.APPEND)
 
 
 if __name__ == "__main__":
