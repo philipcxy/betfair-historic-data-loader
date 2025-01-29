@@ -12,9 +12,16 @@ def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
     df_market = spark.read.table("soccer.market").alias("m")
     df_runner = spark.read.table("soccer.market_runner").alias("mr")
+    df_market_type = spark.read.table("soccer.market_type").alias("mr")
 
-    over_under_point_five_goals_market_type_id = 63
-    over_point_five_goals_runner_id = 5851483
+    over_under_point_five_goals_market_type_id = (
+        df_market_type.filter(F.col("type") == F.lit("OVER_UNDER_05"))
+        .select(F.col("id"))
+        .collect()[0][0]
+    )
+
+    # uses the betfair runner id so never changes
+    over_point_five_goals_runner_id = 85899345921
 
     event = (
         df_market.filter(
