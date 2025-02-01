@@ -15,30 +15,20 @@ def load_data_to_table(namespace: str, branch: str, location: str, path: str) ->
         recursiveFileLookup=True,
         schema=load_schema(),
     )
-    df = (
-        df.select(
-            F.col("pt"),
-            F.to_timestamp(F.col("pt") / 1000).alias("timestamp"),
-            F.explode(F.col("mc")).alias("mc"),
-        )
-        .select(F.col("pt"), F.col("timestamp"), F.col("mc.*"))
-        .where(F.col("mc.marketDefinition").isNotNull())
-        .select(
-            F.col("id"),
-            F.col("pt"),
-            F.col("timestamp"),
-            F.col("marketDefinition.*"),
-            F.col("rc"),
-        )
+
+    df = df.select(
+        F.col("pt"),
+        F.to_timestamp(F.col("pt") / 1000).alias("timestamp"),
+        F.explode(F.col("mc")).alias("mc"),
     )
 
-    save_table(spark, df, f"{namespace}.raw", WriteMode.APPEND)
+    save_table(spark, df, f"{namespace}.raw", WriteMode.REPLACE)
 
 
 def rewrite_files(namespace: str, branch: str) -> None:
     spark = setup_spark_environment(namespace, branch)
     spark.sql(
-        f"CALL betting.system.rewrite_data_files(table => '{namespace}.raw', strategy => 'sort', sort_order => 'id DESC NULLS LAST')"
+        f"CALL betting.system.rewrite_data_files(table => '{namespace}.raw', strategy => 'sort', sort_order => 'pt NULLS LAST')"
     )
 
 
