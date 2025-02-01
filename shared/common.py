@@ -40,16 +40,14 @@ def save_table(
     table_name: str,
     mode: WriteMode = WriteMode.APPEND,
 ):
-    # Create table if it doesn't exist. Must do it this way as nessie times out when creating tables
-    # and writing to them in the same transaction
     if not spark.catalog.tableExists(table_name):
-        spark.catalog.createTable(table_name, df.schema, format="iceberg")
-
-    match mode:
-        case WriteMode.APPEND:
-            df.writeTo(table_name).append()
-        case WriteMode.REPLACE:
-            df.writeTo(table_name).replace()
+        df.writeTo(table_name).create()
+    else:
+        match mode:
+            case WriteMode.APPEND:
+                df.writeTo(table_name).append()
+            case WriteMode.REPLACE:
+                df.writeTo(table_name).replace()
 
 
 @staticmethod
