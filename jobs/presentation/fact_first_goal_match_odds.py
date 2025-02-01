@@ -14,7 +14,7 @@ def load_data_to_table(namespace: str, branch: str) -> None:
         WITH filtered_markets as (
             SELECT *
             FROM soccer.dim_runner r
-            WHERE r.market_type_id = 34
+            WHERE r.market_type_id = 34359738372
         )
         SELECT f.name,
             CAST(from_unixtime(first(fe.pt/1000)) AS date) as timestamp,
