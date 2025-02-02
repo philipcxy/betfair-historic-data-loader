@@ -9,11 +9,20 @@ from shared.common import save_table, setup_spark_environment
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.raw")
+    raw_df = (
+        spark.table("betting.landing.raw")
+        .filter(F.col("mc.marketDefinition").isNotNull())
+        .select(
+            F.col("mc.id").alias("market_id"),
+            F.col("pt").alias("epoch"),
+            F.col("timestamp"),
+            F.col("mc.marketDefinition.*"),
+        )
+    )
 
     market_change = raw_df.select(
-        F.col("id").alias("market_id"),
-        F.col("pt").alias("epoch"),
+        F.col("market_id"),
+        F.col("epoch"),
         F.col("timestamp"),
         F.col("betDelay").alias("bet_delay"),
         F.col("bettingType").alias("betting_type"),
@@ -31,7 +40,7 @@ def save(namespace: str, branch: str):
         F.col("version"),
     )
 
-    save_table(spark, market_change, "soccer.market_change")
+    save_table(spark, market_change, f"{namespace}.market_change")
 
 
 if __name__ == "__main__":

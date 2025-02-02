@@ -10,13 +10,15 @@ from shared.common import save_table, setup_spark_environment
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.raw")
+    raw_df = (
+        spark.table("betting.landing.raw")
+        .filter(F.col("mc.marketDefinition").isNotNull())
+        .select(F.col("mc.id").alias("market_id"), F.col("mc.marketDefinition.*"))
+    )
 
     window = Window.partitionBy(F.col("market_id"), F.col("id"))
     market_runner_df = (
-        raw_df.select(
-            F.col("id").alias("market_id"), F.explode(F.col("runners")).alias("runner")
-        )
+        raw_df.withColumn(F.explode(F.col("runners")).alias("runner"))
         .select(F.col("market_id"), F.col("runner.*"))
         .withColumn(
             "winner", F.when(F.col("status") == "WINNER", True).otherwise(False)
@@ -31,7 +33,7 @@ def save(namespace: str, branch: str):
         .distinct()
     )
 
-    save_table(spark, market_runner_df, "soccer.market_runner")
+    save_table(spark, market_runner_df, f"{namespace}.market_runner")
 
 
 if __name__ == "__main__":

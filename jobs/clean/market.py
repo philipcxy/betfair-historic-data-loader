@@ -18,13 +18,13 @@ def save(namespace: str, branch: str):
                             , cast(max(settledTime) as timestamp) as settled_time
                             , min(CASE WHEN inPlay == 'true' THEN timestamp ELSE NULL END) as kick_off
                             , numberOfWinners as num_winners
-                        FROM soccer.raw
-                        INNER JOIN soccer.market_type mt
+                        FROM betting.landing.raw
+                        INNER JOIN betting.lean.market_type mt
                         ON raw.marketType = mt.type
                         GROUP BY raw.id, mt.id, eventId, marketType, numberOfWinners
                     """)
 
-    save_table(spark, markets, "soccer.market", WriteMode.APPEND)
+    save_table(spark, markets, f"{namespace}.market", WriteMode.APPEND)
 
 
 if __name__ == "__main__":

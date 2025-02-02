@@ -12,16 +12,20 @@ def save(namespace: str, branch: str):
     """
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.raw")
+    raw_df = (
+        spark.table("betting.landing.raw")
+        .filter(F.col("mc.marketDefinition").isNotNull())
+        .select(F.col("mc.marketDefinition.runners"))
+    )
 
     runners = (
-        raw_df.select(F.explode(F.col("runners")).alias("runners"))
-        .select(F.col("runners.*"))
+        raw_df.select(F.explode(F.col("runners")).alias("runner"))
+        .select(F.col("runner.*"))
         .select(F.col("id"), F.col("name"))
         .distinct()
     )
 
-    save_table(spark, runners, "soccer.runner")
+    save_table(spark, runners, f"{namespace}.runner")
 
 
 if __name__ == "__main__":

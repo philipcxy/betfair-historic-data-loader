@@ -11,18 +11,22 @@ from shared.common import save_table, setup_spark_environment
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.raw")
+    raw_df = (
+        spark.table("betting.landing.raw")
+        .filter(F.col("mc.marketDefinition").isNotNull())
+        .select(F.col("mc.marketDefinition.*"))
+    )
 
     window = Window.partitionBy("eventId").orderBy(F.desc(F.col("pt")))
 
     event = raw_df.select(
         F.col("eventId").alias("id").cast(T.IntegerType()),
-        F.first(F.col("eventName")).over(window).alias("name"),
-        F.first(F.col("countryCode")).over(window).alias("country_code"),
-        F.first(F.col("regulators")).over(window).alias("regulators"),
-    ).distinct()
+        F.last(F.col("eventName")).over(window).alias("name"),
+        F.last(F.col("countryCode")).over(window).alias("country_code"),
+        F.last(F.col("regulators")).over(window).alias("regulators"),
+    ).distinct()  # Needed to remove duplicates which shouldn't exist but not digging into it right now
 
-    save_table(spark, event, "soccer.event")
+    save_table(spark, event, f"{namespace}.event")
 
 
 if __name__ == "__main__":

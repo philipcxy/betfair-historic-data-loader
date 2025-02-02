@@ -11,22 +11,20 @@ from shared.enums import WriteMode
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
-    raw_df = spark.table("soccer.raw")
-
-    rc_df = (
-        raw_df.where(F.col("rc").isNotNull())
-        .select(F.col("pt"), F.col("timestamp"), F.col("rc"), F.col("id"))
-        .withColumn("rc", F.explode(F.col("rc")))
+    raw_df = (
+        spark.table("betting.landing.raw")
+        .filter(F.col("mc.rc").isNotNull())
+        .withColumn("rc_exploded", F.explode(F.col("mc.rc")))
         .select(
-            F.col("id").alias("market_id"),
-            F.col("pt"),
+            F.col("mc.id").alias("market_id"),
+            F.col("pt").alias("epoch"),
             F.col("timestamp"),
-            F.col("rc.*"),
+            F.col("rc_exploded.*"),
         )
     )
 
     batb_df = (
-        rc_df.where(F.col("batb").isNotNull())
+        raw_df.where(F.col("batb").isNotNull())
         .withColumn("batb", F.explode(F.col("batb")))
         .withColumns(
             {
@@ -41,7 +39,7 @@ def save(namespace: str, branch: str):
     )
 
     batl_df = (
-        rc_df.where(F.col("batl").isNotNull())
+        raw_df.where(F.col("batl").isNotNull())
         .withColumn("batl", F.explode(F.col("batl")))
         .withColumns(
             {
@@ -56,13 +54,13 @@ def save(namespace: str, branch: str):
 
     odds_df = batb_df.union(batl_df).drop(F.col("trd"))
 
-    save_table(spark, odds_df, "soccer.runner_change", mode=WriteMode.APPEND)
+    save_table(spark, odds_df, f"{namespace}.runner_change", mode=WriteMode.APPEND)
 
 
 def rewrite_files(namespace: str, branch: str) -> None:
     spark = setup_spark_environment(namespace, branch)
     spark.sql(
-        "CALL betting.system.rewrite_data_files(table => 'soccer.runner_change', strategy => 'sort', sort_order => 'market_id DESC NULLS LAST, runner_id DESC NULLS LAST, pt DESC NULLS LAST')"
+        f"CALL betting.system.rewrite_data_files(table => '{namespace}.runner_change', strategy => 'sort', sort_order => 'market_id NULLS LAST, runner_id NULLS LAST, epoch NULLS LAST')"
     )
 
 
