@@ -3,6 +3,7 @@ import argparse
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
+from pyspark.sql import Window
 
 from shared.common import save_table, setup_spark_environment
 from shared.enums import WriteMode
@@ -14,28 +15,47 @@ def save(namespace: str, branch: str):
     raw_df = (
         spark.table("betting.landing.raw")
         .filter(F.col("mc.marketDefinition").isNotNull())
-        .select(F.col("pt"), F.col("mc.marketDefinition.*"))
+        .select(F.col("timestamp"), F.col("mc.id"), F.col("mc.marketDefinition.*"))
     ).alias("r")
 
-    market_type_df = spark.table("betting.clean.market_type").alias("mt")
+    market_types = spark.read.table("betting.clean.market_type")
+
+    window = (
+        Window.partitionBy(F.col("r.id"))
+        .orderBy(F.col("r.timestamp"))
+        .rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)
+    )
 
     markets = (
-        raw_df.join(
-            market_type_df, (F.col("r.marketType") == F.col("mt.type")), "inner"
+        raw_df.join(market_types.alias("mt"), F.col("r.marketType") == F.col("mt.type"))
+        .withColumn(
+            "only_inplay",
+            F.when(F.col("inPlay") == F.lit(True), F.col("r.timestamp")).otherwise(
+                F.lit(None)
+            ),
         )
         .select(
-            F.col("id"),
+            F.col("r.id"),
             F.col("eventId").alias("event_id").cast(T.IntegerType()),
             F.col("mt.id").alias("type_id"),
-            F.max(F.col("openDate")).cast("timestamp").alias("scheduled_time"),
-            F.max(F.col("marketTime")).cast("timestamp").alias("start_time"),
-            F.max(F.col("settledTime")).cast("timestamp").alias("settled_time"),
-            F.min(
-                F.when(F.col("inPlay") == "true", F.col("timestamp")).otherwise(None)
-            ).alias("kick_off"),
+            F.max("openDate")
+            .over(window)
+            .alias("scheduled_time")
+            .cast(T.TimestampType()),
+            F.max("marketTime")
+            .over(window)
+            .alias("start_time")
+            .cast(T.TimestampType()),
+            F.max("settledTime")
+            .over(window)
+            .alias("settled_time")
+            .cast(T.TimestampType()),
+            F.first(F.col("only_inplay"), ignorenulls=True)
+            .over(window)
+            .alias("kick_off"),
             F.col("numberOfWinners").alias("num_winners"),
         )
-        .groupBy(F.col("id"), F.col("event_id"), F.col("type_id"), F.col("num_winners"))
+        .distinct()
     )
 
     save_table(spark, markets, f"{namespace}.market", WriteMode.APPEND)
