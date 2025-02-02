@@ -129,6 +129,13 @@ def save(namespace: str, branch: str):
     save_table(spark, dim_runner, f"{namespace}.dim_runner", mode=WriteMode.APPEND)
 
 
+def rewrite_files(namespace: str, branch: str) -> None:
+    spark = setup_spark_environment(namespace, branch)
+    spark.sql(
+        f"CALL betting.system.rewrite_data_files(table => '{namespace}.dim_runner', strategy => 'sort', sort_order => 'id NULLS LAST, market_id NULLS last')"
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a PySpark job")
     parser.add_argument(
@@ -145,6 +152,16 @@ if __name__ == "__main__":
         dest="branch",
         help="If specified creates a new branch in nessie and uses it",
     )
+    parser.add_argument(
+        "--rewrite_files",
+        type=bool,
+        dest="rewrite_files",
+        default=False,
+        required=False,
+    )
     args = parser.parse_args()
 
-    save(args.namespace, args.branch)
+    if args.rewrite_files:
+        rewrite_files(args.namespace, args.branch)
+    else:
+        save(args.namespace, args.branch)
