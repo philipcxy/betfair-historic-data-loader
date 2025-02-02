@@ -13,10 +13,10 @@ def save(namespace: str, branch: str):
 
     raw_df = (
         spark.table("betting.landing.raw")
-        .alias("r")
         .filter(F.col("mc.marketDefinition").isNotNull())
         .select(F.col("pt"), F.col("mc.marketDefinition.*"))
-    )
+    ).alias("r")
+
     market_type_df = spark.table("betting.clean.market_type").alias("mt")
 
     markets = (
