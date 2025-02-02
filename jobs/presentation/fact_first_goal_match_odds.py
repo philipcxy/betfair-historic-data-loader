@@ -11,44 +11,46 @@ def load_data_to_table(namespace: str, branch: str) -> None:
     spark = setup_spark_environment(namespace, branch)
 
     df = spark.sql("""
-        WITH filtered_markets as (
-            SELECT *
-            FROM betting.presentation.dim_runner r
-            INNER JOIN betting.clean.market_type mt
-            ON r.market_type_id = mt.id
-            WHERE mt.type = "MATCH_ODDS"
-        )
-        SELECT f.name,
+        SELECT r.event_id,
+            r.event_name,
+            r.market_id, 
+            r.market_name,
+            r.id AS runner_key,
+            r.runner_id,
+            r.name,
             CAST(from_unixtime(first(fe.epoch/1000)) AS date) as timestamp,
-            f.event_name,
-            f.runner_id,
-            f.market_id,
-            f.pre_ko_traded_volume,
-            f.ko_odds,
-            f.favourite,
-            f.sort_priority,
-            f.winner,
-            f.country_code,
+            r.pre_ko_traded_volume,
+            r.ko_odds,
+            r.favourite,
+            r.sort_priority,
+            r.winner,
+            r.country_code,
             min(fe.first_odds) as first_odds,
             min(fe.second_odds) as second_odds,
             min(fe.third_odds) as third_odds,
             e.first_goal_minute
-        FROM filtered_markets f
+        FROM betting.presentation.dim_runner r
+        INNER JOIN betting.clean.market_type mt
+            ON r.market_type_id = mt.id
         INNER JOIN betting.presentation.fact_runner_odds fe
-            ON f.id = fe.runner_key
+            ON r.id = fe.runner_key
         INNER JOIN betting.presentation.dim_first_goal e
-            ON e.event_id = f.event_id
-        WHERE fe.minute between e.first_goal_minute AND e.first_goal_minute + 2
-        GROUP BY f.name, 
-            f.event_name,
-            f.runner_id,
-            f.market_id, 
-            f. pre_ko_traded_volume, 
-            f.ko_odds, 
-            f.favourite, 
-            f.sort_priority, 
-            f.winner, 
-            f.country_code, 
+            ON  r.event_id = e.event_id
+        WHERE mt.type = "MATCH_ODDS" AND
+            fe.minute between e.first_goal_minute AND e.first_goal_minute + 2
+        GROUP BY r.event_id,
+            r.event_name,
+            r.market_id, 
+            r.market_name,
+            r.id,
+            r.runner_id,
+            r.name,
+            r.pre_ko_traded_volume, 
+            r.ko_odds, 
+            r.favourite, 
+            r.sort_priority, 
+            r.winner, 
+            r.country_code, 
             e.first_goal_minute
     """)
 
