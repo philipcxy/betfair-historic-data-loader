@@ -19,7 +19,7 @@ def save(namespace: str, branch: str):
                             , min(CASE WHEN inPlay == 'true' THEN timestamp ELSE NULL END) as kick_off
                             , numberOfWinners as num_winners
                         FROM betting.landing.raw
-                        INNER JOIN betting.lean.market_type mt
+                        INNER JOIN betting.clean.market_type mt
                         ON raw.marketType = mt.type
                         GROUP BY raw.id, mt.id, eventId, marketType, numberOfWinners
                     """)
