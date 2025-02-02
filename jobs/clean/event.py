@@ -14,10 +14,10 @@ def save(namespace: str, branch: str):
     raw_df = (
         spark.table("betting.landing.raw")
         .filter(F.col("mc.marketDefinition").isNotNull())
-        .select(F.col("mc.marketDefinition.*"))
+        .select(F.col("pt"), F.col("mc.marketDefinition.*"))
     )
 
-    window = Window.partitionBy("eventId").orderBy(F.desc(F.col("pt")))
+    window = Window.partitionBy("eventId").orderBy(F.col("pt"))
 
     event = raw_df.select(
         F.col("eventId").alias("id").cast(T.IntegerType()),
