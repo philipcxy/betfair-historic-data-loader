@@ -10,9 +10,9 @@ from shared.enums import WriteMode
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
-    df_market = spark.read.table("soccer.market").alias("m")
-    df_runner = spark.read.table("soccer.market_runner").alias("mr")
-    df_market_type = spark.read.table("soccer.market_type").alias("mr")
+    df_market = spark.read.table("betting.clean.market").alias("m")
+    df_runner = spark.read.table("betting.clean.market_runner").alias("mr")
+    df_market_type = spark.read.table("betting.clean.market_type").alias("mr")
 
     over_under_point_five_goals_market_type_id = (
         df_market_type.filter(F.col("type") == F.lit("OVER_UNDER_05"))
@@ -20,8 +20,11 @@ def save(namespace: str, branch: str):
         .collect()[0][0]
     )
 
-    # uses the betfair runner id so never changes
-    over_point_five_goals_runner_id = 85899345921
+    over_point_five_goals_runner_id = (
+        df_runner.filter(F.col("name") == F.lit("Over 0.5 Goals"))
+        .select(F.col("id"))
+        .collect()[0][0]
+    )
 
     event = (
         df_market.filter(
@@ -46,7 +49,7 @@ def save(namespace: str, branch: str):
         )
     ).alias("event_first_goal")
 
-    save_table(spark, event, "soccer.dim_first_goal", mode=WriteMode.APPEND)
+    save_table(spark, event, f"{namespace}.dim_first_goal", mode=WriteMode.APPEND)
 
 
 if __name__ == "__main__":

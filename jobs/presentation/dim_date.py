@@ -54,7 +54,7 @@ def save(namespace: str, branch: str):
         F.col("calendar_day"),
     )
 
-    save_table(spark, dates_df, "soccer.dim_date", mode=WriteMode.APPEND)
+    save_table(spark, dates_df, f"{namespace}.dim_date", mode=WriteMode.APPEND)
 
 
 if __name__ == "__main__":

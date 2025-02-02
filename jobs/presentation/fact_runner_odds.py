@@ -11,14 +11,14 @@ from shared.enums import WriteMode
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
-    rc_df = spark.read.table("soccer.runner_change").alias("rc")
+    rc_df = spark.read.table("betting.clean.runner_change").alias("rc")
     market_df = (
-        spark.read.table("soccer.market")
+        spark.read.table("betting.clean.market")
         .select(F.col("id").alias("market_id"), F.col("kick_off"))
         .alias("m")
     )
     dim_runner = (
-        spark.read.table("soccer.dim_runner")
+        spark.read.table("betting.presentation.dim_runner")
         .select(F.col("id"), F.col("market_id"), F.col("runner_id"))
         .alias("dr")
     )
@@ -85,7 +85,7 @@ def save(namespace: str, branch: str):
         )
     )
 
-    save_table(spark, rc_df, "soccer.fact_runner_odds", mode=WriteMode.APPEND)
+    save_table(spark, rc_df, f"{namespace}.fact_runner_odds", mode=WriteMode.APPEND)
 
 
 def rewrite_files(namespace: str, branch: str) -> None:
