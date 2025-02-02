@@ -13,11 +13,13 @@ def load_data_to_table(namespace: str, branch: str) -> None:
     df = spark.sql("""
         WITH filtered_markets as (
             SELECT *
-            FROM soccer.dim_runner r
-            WHERE r.market_type_id = 34359738372
+            FROM betting.presentation.dim_runner r
+            INNER JOIN betting.clean.market_type mt
+            ON r.market_type_id = mt.id
+            WHERE mt.type = "MATCH_ODDS"
         )
         SELECT f.name,
-            CAST(from_unixtime(first(fe.pt/1000)) AS date) as timestamp,
+            CAST(from_unixtime(first(fe.epoch/1000)) AS date) as timestamp,
             f.event_name,
             f.runner_id,
             f.market_id,

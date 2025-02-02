@@ -21,7 +21,7 @@ def save(namespace: str, branch: str):
 
     window = (
         Window.partitionBy(F.col("rc.market_id"), F.col("rc.runner_id"))
-        .orderBy(F.col("pt"))
+        .orderBy(F.col("epoch"))
         .rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)
     )
     runner_change_pre_ko_df = (
@@ -42,7 +42,7 @@ def save(namespace: str, branch: str):
     )
     odds_window = Window.partitionBy(
         F.col("rc.market_id"), F.col("rc.runner_id")
-    ).orderBy(F.desc(F.col("rc.pt")))
+    ).orderBy(F.desc(F.col("rc.epoch")))
 
     runner_change_ko_odds_df = (
         runner_change.join(
@@ -124,7 +124,7 @@ def save(namespace: str, branch: str):
             F.col("total_traded_volume"),
         )
         .distinct()
-    )
+    ).show()
 
     save_table(spark, dim_runner, f"{namespace}.dim_runner", mode=WriteMode.APPEND)
 

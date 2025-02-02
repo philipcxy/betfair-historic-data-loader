@@ -11,6 +11,7 @@ from shared.enums import WriteMode
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
+
     rc_df = spark.read.table("betting.clean.runner_change").alias("rc")
     market_df = (
         spark.read.table("betting.clean.market")
@@ -25,12 +26,12 @@ def save(namespace: str, branch: str):
 
     window = Window.partitionBy(
         F.col("rc.market_id"), F.col("rc.runner_id"), F.col("type")
-    ).orderBy(F.col("pt"))
+    ).orderBy(F.col("epoch"))
     rc_df = (
         rc_df.groupBy(
             F.col("rc.market_id"),
             F.col("rc.runner_id"),
-            F.col("rc.pt"),
+            F.col("rc.epoch"),
             F.col("rc.hc"),
             F.col("rc.ltp"),
             F.col("rc.tv"),
@@ -52,7 +53,7 @@ def save(namespace: str, branch: str):
         .withColumn(
             "minute",
             F.round(
-                (F.col("rc.pt") - (F.unix_timestamp(F.col("m.kick_off")) * 1000))
+                (F.col("rc.epoch") - (F.unix_timestamp(F.col("m.kick_off")) * 1000))
                 / 60000
             ).cast(T.IntegerType()),
         )
