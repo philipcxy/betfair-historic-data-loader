@@ -18,7 +18,7 @@ def save(namespace: str, branch: str):
 
     window = Window.partitionBy(F.col("market_id"), F.col("id"))
     market_runner_df = (
-        raw_df.withColumn(F.explode(F.col("runners")).alias("runner"))
+        raw_df.withColumn("runner", F.explode(F.col("runners")))
         .select(F.col("market_id"), F.col("runner.*"))
         .withColumn(
             "winner", F.when(F.col("status") == "WINNER", True).otherwise(False)
