@@ -10,9 +10,9 @@ from shared.enums import WriteMode
 
 def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
-    
+
     df_market = spark.read.table("betting.clean.market").alias("m")
-    df_runner = spark.read.table("betting.clean.market_runner").alias("mr")
+    df_runner = spark.read.table("betting.clean.runner").alias("mr")
     df_market_type = spark.read.table("betting.clean.market_type").alias("mr")
 
     over_under_point_five_goals_market_type_id = (
