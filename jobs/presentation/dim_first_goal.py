@@ -12,8 +12,9 @@ def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
     df_market = spark.read.table("betting.clean.market").alias("m")
-    df_runner = spark.read.table("betting.clean.runner").alias("mr")
-    df_market_type = spark.read.table("betting.clean.market_type").alias("mr")
+    df_market_runner = spark.read.table("betting.clean.market_runner").alias("mr")
+    df_runner = spark.read.table("betting.clean.runner").alias("r")
+    df_market_type = spark.read.table("betting.clean.market_type").alias("mt")
 
     over_under_point_five_goals_market_type_id = (
         df_market_type.filter(F.col("type") == F.lit("OVER_UNDER_05"))
@@ -31,7 +32,7 @@ def save(namespace: str, branch: str):
         df_market.filter(
             (F.col("type_id") == over_under_point_five_goals_market_type_id)
         )
-        .join(df_runner, (F.col("m.id") == F.col("mr.market_id")), "inner")
+        .join(df_market_runner, (F.col("m.id") == F.col("mr.market_id")), "inner")
         .filter((F.col("mr.winner") == F.lit(True)) & (F.col("m.kick_off").isNotNull()))
         .withColumn(
             "first_goal_minute",
