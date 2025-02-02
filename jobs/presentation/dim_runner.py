@@ -124,7 +124,7 @@ def save(namespace: str, branch: str):
             F.col("total_traded_volume"),
         )
         .distinct()
-    ).show()
+    )
 
     save_table(spark, dim_runner, f"{namespace}.dim_runner", mode=WriteMode.APPEND)
 
