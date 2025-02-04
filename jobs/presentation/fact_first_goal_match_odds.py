@@ -25,9 +25,9 @@ def load_data_to_table(namespace: str, branch: str) -> None:
             r.sort_priority,
             r.winner,
             r.country_code,
-            min(fe.first_odds) as first_odds,
-            min(fe.second_odds) as second_odds,
-            min(fe.third_odds) as third_odds,
+            avg(fe.first_odds) as first_odds,
+            avg(fe.second_odds) as second_odds,
+            avg(fe.third_odds) as third_odds,
             e.first_goal_minute
         FROM betting.presentation.dim_runner r
         INNER JOIN betting.clean.market_type mt
@@ -37,7 +37,7 @@ def load_data_to_table(namespace: str, branch: str) -> None:
         INNER JOIN betting.presentation.dim_first_goal e
             ON  r.event_id = e.event_id
         WHERE mt.type = "MATCH_ODDS" AND
-            fe.minute between e.first_goal_minute AND e.first_goal_minute + 2
+            fe.minute between e.first_goal_minute + 2 AND e.first_goal_minute + 5
         GROUP BY r.event_id,
             r.event_name,
             r.market_id, 
@@ -55,7 +55,7 @@ def load_data_to_table(namespace: str, branch: str) -> None:
     """)
 
     save_table(
-        spark, df, f"{namespace}.fact_first_goal_match_odds", mode=WriteMode.APPEND
+        spark, df, f"{namespace}.fact_first_goal_match_odds", mode=WriteMode.REPLACE
     )
 
 
