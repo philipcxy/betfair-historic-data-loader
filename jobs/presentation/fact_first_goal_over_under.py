@@ -7,7 +7,7 @@ from shared.common import save_table, setup_spark_environment
 from shared.enums import WriteMode
 
 
-def load_data_to_table(namespace: str, branch: str) -> None:
+def load_data_to_table(namespace: str, branch: str, mode: WriteMode) -> None:
     spark = setup_spark_environment(namespace, branch)
 
     df = spark.sql("""
@@ -54,9 +54,7 @@ def load_data_to_table(namespace: str, branch: str) -> None:
             e.first_goal_minute
     """)
 
-    save_table(
-        spark, df, f"{namespace}.fact_first_goal_match_odds", mode=WriteMode.REPLACE
-    )
+    save_table(spark, df, f"{namespace}.fact_first_goal_over_under", mode=mode)
 
 
 if __name__ == "__main__":
@@ -75,7 +73,15 @@ if __name__ == "__main__":
         dest="branch",
         help="If specified creates a new branch in nessie and uses it",
     )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        required=False,
+        dest="mode",
+        help="The write mode to use when saving the table",
+        choices=[WriteMode.APPEND, WriteMode.REPLACE],
+    )
 
     args = parser.parse_args()
 
-    load_data_to_table(args.namespace, args.branch)
+    load_data_to_table(args.namespace, args.branch, args.mode or WriteMode.APPEND)
