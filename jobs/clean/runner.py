@@ -2,6 +2,7 @@ import argparse
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+from pyspark.sql.window import Window
 
 from shared.common import save_table, setup_spark_environment
 
@@ -13,16 +14,44 @@ def save(namespace: str, branch: str):
     spark: SparkSession = setup_spark_environment(namespace, branch)
 
     raw_df = (
-        spark.table("betting.landing.raw")
-        .filter(F.col("mc.marketDefinition").isNotNull())
-        .select(F.col("mc.marketDefinition.runners"))
+        spark.table("betting_warehouse.landing.raw")
+            .filter(F.col("mc.marketDefinition").isNotNull())
+            .select(
+                F.col("mc.marketDefinition.runners"),
+                F.col("mc.id").alias("market_id"),
+                F.col("mc.marketDefinition.name").alias("market_name"),
+                F.col("pt"),
+            )
+        )
+
+    runners_exploded = raw_df.select(
+        F.explode(F.col("runners")).alias("runner"),
+        F.col("market_id"),
+        F.col("market_name"),
+        F.col("pt"),
+    ).select(F.col("runner.*"), F.col("market_id"), F.col("market_name"), F.col("pt"))
+
+    window = (
+        Window.partitionBy("market_id", "market_name", "id", "name")
+        .orderBy(F.col("pt").asc())
+        .rowsBetween(Window.unboundedPreceding, Window.unboundedFollowing)
     )
 
     runners = (
-        raw_df.select(F.explode(F.col("runners")).alias("runner"))
-        .select(F.col("runner.*"))
-        .select(F.col("id"), F.col("name"))
-        .distinct()
+        runners_exploded.withColumn("last_status", F.last("status").over(window))
+        .drop("status")
+        .withColumnRenamed("last_status", "status")
+        .dropDuplicates(
+            ["market_id", "market_name", "id", "name"]
+        )  # keep one row per runner
+        .select(
+            "market_id",
+            "market_name",
+            F.col("id").alias("runner_id"),
+            F.col("name").alias("runner_name"),
+            "status",
+            F.col("sortPriority").alias("sort_priority"),
+        )
     )
 
     save_table(spark, runners, f"{namespace}.runner")
