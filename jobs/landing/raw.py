@@ -11,18 +11,26 @@ def load_data_to_table(namespace: str, branch: str, location: str, path: str) ->
     spark = setup_spark_environment(namespace, branch)
 
     df = spark.read.json(
-        f"/{location}/ADVANCED/{path}",
+        path,
         recursiveFileLookup=True,
         schema=load_schema(),
     )
 
-    df = df.select(
-        F.col("pt"),
-        F.to_timestamp(F.col("pt") / 1000).alias("timestamp"),
-        F.explode(F.col("mc")).alias("mc"),
+    df = df.withColumn("source_file_name", F.input_file_name())
+    df = df.filter(~F.col("source_file_name").rlike(r"/1\.\d+\.bz2$"))
+
+    df = (
+        df.select(
+            F.col("pt"),
+            F.to_timestamp(F.col("pt") / 1000).alias("timestamp"),
+            F.explode(F.col("mc")).alias("mc"),
+            F.col("source_file_name"),
+        )
+        .groupBy(F.col("pt"), F.col("timestamp"), F.col("mc"))
+        .agg(F.collect_list("source_file_name").alias("source_file_names"))
     )
 
-    save_table(spark, df, f"{namespace}.raw", WriteMode.REPLACE)
+    save_table(spark, df, f"{namespace}.raw", WriteMode.APPEND)
 
 
 def rewrite_files(namespace: str, branch: str) -> None:
